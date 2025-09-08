@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 
 export async function POST(
     req: NextRequest,
-    { params }: { params: { chatId: string } }
+    { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
         const { userId } = await auth();

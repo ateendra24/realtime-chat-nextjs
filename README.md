@@ -2,6 +2,11 @@
 
 A modern, full-featured realtime chat application built with Next.js 15, TypeScript, Socket.IO, Clerk Auth, and PostgreSQL. Features both direct messaging and group chat functionality with a polished user experience.
 
+## Screenshot
+
+![Screenshot](./public//s1.png)
+![Screenshot](./public//s2.png)
+
 ## Features
 
 ### ✅ Completed Features
@@ -233,8 +238,6 @@ All tables include proper foreign key relationships, indexes for performance, an
 - ✅ **Modular architecture** with reusable hooks and components
 - ✅ **Comprehensive error boundaries** and graceful degradation
 - ✅ **Clean separation of concerns** between UI, business logic, and data layers
-
-## Future Enhancements
 
 ## Future Enhancements
 

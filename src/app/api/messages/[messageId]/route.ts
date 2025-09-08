@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 // PUT /api/messages/[messageId] - Edit message
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { messageId: string } }
+    { params }: { params: Promise<{ messageId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function PUT(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { messageId } = params;
+        const { messageId } = await params;
         const { content } = await request.json();
 
         if (!content || content.trim().length === 0) {
@@ -59,7 +59,7 @@ export async function PUT(
 // DELETE /api/messages/[messageId] - Delete message (soft delete)
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { messageId: string } }
+    { params }: { params: Promise<{ messageId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -67,7 +67,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { messageId } = params;
+        const { messageId } = await params;
 
         // Verify the message exists and user is the author
         const message = await db

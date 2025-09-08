@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 // DELETE /api/groups/[groupId]/members/[memberId] - Remove member from group
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { groupId: string; memberId: string } }
+    { params }: { params: Promise<{ groupId: string; memberId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function DELETE(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { groupId, memberId } = params;
+        const { groupId, memberId } = await params;
 
         // Check if current user is admin of the group
         const adminCheck = await db

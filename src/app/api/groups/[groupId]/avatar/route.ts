@@ -8,7 +8,7 @@ import { uploadToImageKit, deleteFromImageKit } from '@/lib/imagekit';
 // POST /api/groups/[groupId]/avatar - Upload group avatar
 export async function POST(
     request: NextRequest,
-    { params }: { params: { groupId: string } }
+    { params }: { params: Promise<{ groupId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -113,7 +113,7 @@ export async function POST(
 // DELETE /api/groups/[groupId]/avatar - Remove group avatar
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { groupId: string } }
+    { params }: { params: Promise<{ groupId: string }> }
 ) {
     try {
         const { userId } = await auth();

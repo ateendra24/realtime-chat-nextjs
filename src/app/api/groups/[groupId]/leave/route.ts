@@ -7,7 +7,7 @@ import { eq, and, count } from 'drizzle-orm';
 // POST /api/groups/[groupId]/leave - Leave group
 export async function POST(
     request: NextRequest,
-    { params }: { params: { groupId: string } }
+    { params }: { params: Promise<{ groupId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { groupId } = params;
+        const { groupId } = await params;
 
         // Check if user is a member of the group
         const membership = await db

@@ -31,13 +31,13 @@ export async function GET(req: ExtendedNextRequest) {
         // Handle joining chat rooms
         socket.on("join_chat", (chatId: string) => {
           console.log(`User ${socket.id} joined chat ${chatId}`);
-          socket.join(chatId);
+          socket.join(`chat_${chatId}`);
         });
 
         // Handle leaving chat rooms
         socket.on("leave_chat", (chatId: string) => {
           console.log(`User ${socket.id} left chat ${chatId}`);
-          socket.leave(chatId);
+          socket.leave(`chat_${chatId}`);
         });
 
         // Handle incoming messages
@@ -45,7 +45,7 @@ export async function GET(req: ExtendedNextRequest) {
           console.log("Message received:", msg);
           // Broadcast message to all clients in the chat room
           if (global.io && msg.chatId) {
-            global.io.to(msg.chatId).emit("message", msg);
+            global.io.to(`chat_${msg.chatId}`).emit("message", msg);
           }
         });
 
@@ -54,19 +54,19 @@ export async function GET(req: ExtendedNextRequest) {
           console.log("Reaction update received:", data);
           // Broadcast reaction update to all clients in the chat room
           if (global.io && data.chatId) {
-            global.io.to(data.chatId).emit("reaction_update", data);
+            global.io.to(`chat_${data.chatId}`).emit("reaction_update", data);
           }
         });
 
         // Handle user typing events
         socket.on("typing_start", (data: { chatId: string; userId: string; username: string }) => {
           console.log("User started typing:", data);
-          socket.to(data.chatId).emit("typing_start", data);
+          socket.to(`chat_${data.chatId}`).emit("typing_start", data);
         });
 
         socket.on("typing_stop", (data: { chatId: string; userId: string }) => {
           console.log("User stopped typing:", data);
-          socket.to(data.chatId).emit("typing_stop", data);
+          socket.to(`chat_${data.chatId}`).emit("typing_stop", data);
         });
 
         // Handle user presence updates
@@ -102,34 +102,34 @@ export async function GET(req: ExtendedNextRequest) {
 
         socket.on("join_chat", (chatId: string) => {
           console.log(`User ${socket.id} joined chat ${chatId}`);
-          socket.join(chatId);
+          socket.join(`chat_${chatId}`);
         });
 
         socket.on("leave_chat", (chatId: string) => {
           console.log(`User ${socket.id} left chat ${chatId}`);
-          socket.leave(chatId);
+          socket.leave(`chat_${chatId}`);
         });
 
         socket.on("message", async (msg) => {
           console.log("Message received:", msg);
           if (global.io && msg.chatId) {
-            global.io.to(msg.chatId).emit("message", msg);
+            global.io.to(`chat_${msg.chatId}`).emit("message", msg);
           }
         });
 
         socket.on("reaction_update", async (data) => {
           console.log("Reaction update received:", data);
           if (global.io && data.chatId) {
-            global.io.to(data.chatId).emit("reaction_update", data);
+            global.io.to(`chat_${data.chatId}`).emit("reaction_update", data);
           }
         });
 
         socket.on("typing_start", (data: { chatId: string; userId: string; username: string }) => {
-          socket.to(data.chatId).emit("typing_start", data);
+          socket.to(`chat_${data.chatId}`).emit("typing_start", data);
         });
 
         socket.on("typing_stop", (data: { chatId: string; userId: string }) => {
-          socket.to(data.chatId).emit("typing_stop", data);
+          socket.to(`chat_${data.chatId}`).emit("typing_stop", data);
         });
 
         socket.on("user_online", (userId: string) => {

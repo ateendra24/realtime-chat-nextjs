@@ -7,7 +7,7 @@ import { eq, and, gt, count } from 'drizzle-orm';
 // POST /api/chats/[chatId]/read - Mark messages as read
 export async function POST(
     request: NextRequest,
-    { params }: { params: { chatId: string } }
+    { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function POST(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { chatId } = params;
+        const { chatId } = await params;
         const { messageId } = await request.json();
 
         // Verify user is a participant
@@ -58,7 +58,7 @@ export async function POST(
 // GET /api/chats/[chatId]/unread - Get unread message count
 export async function GET(
     request: NextRequest,
-    { params }: { params: { chatId: string } }
+    { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -66,7 +66,7 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { chatId } = params;
+        const { chatId } = await params;
 
         // Get participant's last read info
         const participant = await db

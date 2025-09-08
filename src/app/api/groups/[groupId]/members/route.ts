@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 // GET /api/groups/[groupId]/members - Get group members
 export async function GET(
     request: NextRequest,
-    { params }: { params: { groupId: string } }
+    { params }: { params: Promise<{ groupId: string }> }
 ) {
     try {
         const { userId } = await auth();

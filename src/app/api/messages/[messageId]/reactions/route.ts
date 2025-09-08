@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 // POST /api/messages/[messageId]/reactions - Add reaction to message
 export async function POST(
     request: NextRequest,
-    { params }: { params: { messageId: string } }
+    { params }: { params: Promise<{ messageId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -87,7 +87,8 @@ export async function POST(
 
                 // Emit real-time update to other users in the chat
                 if (global.io) {
-                    global.io.to(message[0].chatId).emit("reaction_update", {
+                    console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
+                    global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
                         messageId,
                         emoji,
                         action: 'removed',
@@ -95,6 +96,8 @@ export async function POST(
                         chatId: message[0].chatId,
                         userId: userId
                     });
+                } else {
+                    console.log('global.io not available for reaction emission');
                 }
 
                 return NextResponse.json(responseData);
@@ -116,7 +119,8 @@ export async function POST(
 
                 // Emit real-time update to other users in the chat
                 if (global.io) {
-                    global.io.to(message[0].chatId).emit("reaction_update", {
+                    console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
+                    global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
                         messageId,
                         emoji,
                         action: 'removed',
@@ -124,6 +128,8 @@ export async function POST(
                         chatId: message[0].chatId,
                         userId: userId
                     });
+                } else {
+                    console.log('global.io not available for reaction emission');
                 }
 
                 return NextResponse.json(responseData);
@@ -163,7 +169,8 @@ export async function POST(
 
             // Emit real-time update to other users in the chat
             if (global.io) {
-                global.io.to(message[0].chatId).emit("reaction_update", {
+                console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
+                global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
                     messageId,
                     emoji,
                     action: 'added',
@@ -171,6 +178,8 @@ export async function POST(
                     chatId: message[0].chatId,
                     userId: userId
                 });
+            } else {
+                console.log('global.io not available for reaction emission');
             }
 
             return NextResponse.json(responseData);
@@ -188,7 +197,7 @@ export async function POST(
 // GET /api/messages/[messageId]/reactions - Get reactions for message
 export async function GET(
     request: NextRequest,
-    { params }: { params: { messageId: string } }
+    { params }: { params: Promise<{ messageId: string }> }
 ) {
     try {
         const { userId } = await auth();

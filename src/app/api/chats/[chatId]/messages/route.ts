@@ -6,7 +6,7 @@ import { eq, desc, sql, inArray, and } from "drizzle-orm";
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { chatId: string } }
+    { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -130,7 +130,7 @@ export async function GET(
 // POST /api/chats/[chatId]/messages - Create a new message
 export async function POST(
     req: NextRequest,
-    { params }: { params: { chatId: string } }
+    { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
         console.log('POST /api/chats/[chatId]/messages - Starting');

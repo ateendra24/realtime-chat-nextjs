@@ -7,7 +7,7 @@ import { eq, and } from 'drizzle-orm';
 // PATCH /api/groups/[groupId] - Update group information
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { groupId: string } }
+    { params }: { params: Promise<{ groupId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { groupId } = params;
+        const { groupId } = await params;
         const updates = await request.json();
 
         // Check if current user is admin of the group
