@@ -10,7 +10,26 @@ export async function GET(req: NextRequest) {
         console.log("Initializing Socket.IO server...");
 
         try {
-            // Create a standalone Socket.IO server for Next.js App Router
+            if (process.env.NODE_ENV === 'production') {
+                // Production: Use a mock implementation for Vercel compatibility
+                console.log("Production mode: Using mock Socket.IO for serverless compatibility");
+
+                // Create a mock io object that prevents crashes
+                global.io = {
+                    to: () => ({
+                        emit: (event: string, data: unknown) => {
+                            console.log(`Would emit ${event} in production:`, data);
+                        }
+                    }),
+                    emit: (event: string, data: unknown) => {
+                        console.log(`Would emit global ${event} in production:`, data);
+                    }
+                } as unknown as SocketIOServer;
+
+                return new NextResponse("Socket.IO server initialized for production", { status: 200 });
+            }
+
+            // Development mode - create standalone Socket.IO server
             const server = createServer();
 
             global.io = new SocketIOServer(server, {
@@ -38,12 +57,6 @@ export async function GET(req: NextRequest) {
                     console.log(`User ${socket.id} leaving chat ${chatId}`);
                     socket.leave(`chat_${chatId}`);
                     console.log(`User ${socket.id} successfully left room: chat_${chatId}`);
-                });
-
-                // Handle leaving chat rooms
-                socket.on("leave_chat", (chatId: string) => {
-                    console.log(`User ${socket.id} left chat ${chatId}`);
-                    socket.leave(chatId);
                 });
 
                 // Handle incoming messages
@@ -109,7 +122,7 @@ export async function GET(req: NextRequest) {
                 });
             });
 
-            // Start the Socket.IO server on port 3004
+            // Start the Socket.IO server on port 3004 in development
             const PORT = process.env.SOCKET_PORT || 3004;
 
             // Check if port is available before listening

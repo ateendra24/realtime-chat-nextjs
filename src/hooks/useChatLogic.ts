@@ -97,8 +97,10 @@ export function useChatLogic() {
             console.log("Selected chat ID:", selectedChat?.id);
             console.log("Message chat ID:", msg.chatId);
 
-            if (selectedChat && msg.chatId === selectedChat.id) {
-                console.log("Adding message to current chat");
+            // Only show messages from other users (not the current user)
+            // The current user's messages are already added optimistically when sending
+            if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
+                console.log("Adding message from other user to current chat");
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
@@ -107,19 +109,16 @@ export function useChatLogic() {
                         return prev;
                     }
 
-                    console.log("Adding new message:", msg);
+                    console.log("Adding new message from other user:", msg);
                     const newMessages = [...prev, msg];
                     scrollToBottom(); // Remove setTimeout delay for immediate scrolling
                     return newMessages;
                 });
 
                 // Mark the message as read since user is viewing this chat
-                // Only mark as read if it's not from the current user (they sent it)
-                if (user && msg.userId !== user.id) {
-                    markLastMessageAsRead(selectedChat.id, msg.id);
-                }
+                markLastMessageAsRead(selectedChat.id, msg.id);
             } else {
-                console.log("Message not for current chat or no chat selected");
+                console.log("Message not for current chat, from current user, or no chat selected");
             }
         });
 
@@ -247,7 +246,7 @@ export function useChatLogic() {
     }, [socket, selectedChat]);
 
     const sendMessage = async () => {
-        if (input.trim() && socket && user && !sendingMessage) {
+        if (input.trim() && user && !sendingMessage) {
             const chatId = selectedChat?.id;
 
             if (!chatId) {
@@ -285,28 +284,41 @@ export function useChatLogic() {
                     const result = await response.json();
                     console.log('Message saved successfully:', result);
 
-                    // Don't add the message to local state here since it will come via socket
-                    // This prevents duplicate messages
+                    // Add the message optimistically to the current user's view
+                    // This ensures the sender sees their message immediately
+                    const optimisticMessage: Message = {
+                        ...msg,
+                        id: result.message.id, // Use the real ID from the server
+                        createdAt: new Date(result.message.createdAt),
+                    };
 
-                    // The server will broadcast the message to all participants including sender
-                    // We'll receive it via the socket listener
+                    setMessages((prev) => {
+                        // Check if message already exists to prevent duplicates
+                        const messageExists = prev.some(existingMsg => existingMsg.id === optimisticMessage.id);
+                        if (messageExists) {
+                            return prev;
+                        }
+                        return [...prev, optimisticMessage];
+                    });
 
                     // Emit chat list update event for all participants
-                    socket.emit("chat_list_update", {
-                        chatId: chatId,
-                        lastMessage: {
-                            content: messageContent,
-                            createdAt: result.message.createdAt,
-                            userName: user.fullName || user.username || "Anonymous",
-                            userId: user.id
-                        }
-                    });
+                    if (socket) {
+                        socket.emit("chat_list_update", {
+                            chatId: chatId,
+                            lastMessage: {
+                                content: messageContent,
+                                createdAt: result.message.createdAt,
+                                userName: user.fullName || user.username || "Anonymous",
+                                userId: user.id
+                            }
+                        });
 
-                    // Also emit a global chat list refresh event
-                    socket.emit("global_chat_list_update", {
-                        chatId: chatId,
-                        triggerRefresh: true
-                    });
+                        // Also emit a global chat list refresh event
+                        socket.emit("global_chat_list_update", {
+                            chatId: chatId,
+                            triggerRefresh: true
+                        });
+                    }
 
                     // Mark the message as read for the sender
                     await markLastMessageAsRead(chatId, result.message.id);
@@ -316,13 +328,17 @@ export function useChatLogic() {
                     const errorText = await response.text();
                     console.error('Error saving message to database:', response.status, errorText);
                     const fallbackMsg = { ...msg, content: messageContent };
-                    socket.emit("message", fallbackMsg);
+                    if (socket) {
+                        socket.emit("message", fallbackMsg);
+                    }
                     setMessages(prev => [...prev, fallbackMsg]);
                 }
             } catch (error) {
                 console.error("Error saving message:", error);
                 const fallbackMsg = { ...msg, content: messageContent };
-                socket.emit("message", fallbackMsg);
+                if (socket) {
+                    socket.emit("message", fallbackMsg);
+                }
                 setMessages(prev => [...prev, fallbackMsg]);
             } finally {
                 setSendingMessage(false);

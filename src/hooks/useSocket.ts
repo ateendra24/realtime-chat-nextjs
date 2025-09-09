@@ -9,13 +9,21 @@ export function useSocket() {
   useEffect(() => {
     const initSocket = async () => {
       try {
-        // Initialize socket server first
+        // In production, disable Socket.IO since it doesn't work with Vercel serverless
+        if (process.env.NODE_ENV === 'production') {
+          console.log('Production mode: Socket.IO disabled for serverless compatibility');
+          setSocket(null);
+          setIsConnected(false);
+          return;
+        }
+
+        // Initialize socket server first (development only)
         await fetch("/api/socketio");
 
         // Wait a bit for the server to start
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Connect to Socket.IO server
+        // Connect to Socket.IO server (development only)
         const socketIo = io(`http://localhost:${process.env.NEXT_PUBLIC_SOCKET_PORT || 3004}`, {
           transports: ['polling', 'websocket'], // Try polling first, then websocket
           autoConnect: true,
