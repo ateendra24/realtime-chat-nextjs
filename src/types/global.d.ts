@@ -1,7 +1,8 @@
-import { Server as SocketIOServer } from "socket.io";
+// Global type declarations for the chat application
+// Currently using Pusher for real-time functionality
 
 declare global {
-  var io: SocketIOServer | undefined;
+  // Add any global type declarations here if needed
 }
 
-export {};
+export { };

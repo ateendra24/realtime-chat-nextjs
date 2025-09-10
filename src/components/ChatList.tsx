@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon } from "lucide-react";
-import { useSocket } from "@/hooks/useSocket";
+import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
 import moment from 'moment';
@@ -45,7 +45,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const { socket } = useSocket();
+  const { client: realtimeClient } = useRealtime();
   const { setTheme, theme } = useTheme()
 
   useEffect(() => {
@@ -59,15 +59,28 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     }
   }, [refreshTrigger]);
 
-  // Listen for new messages to update chat list
+  // Listen for real-time updates using Pusher
   useEffect(() => {
-    if (!socket) return;
+    if (!realtimeClient) return;
 
     const handleNewMessage = (message: {
       id: string;
-      chatId: string;
+      user: string;
+      userId?: string;
       content: string;
-      userId: string;
+      createdAt: Date;
+      updatedAt?: Date;
+      chatId?: string;
+      avatarUrl?: string;
+      isEdited?: boolean;
+      isDeleted?: boolean;
+      reactions?: Array<{
+        id: string;
+        emoji: string;
+        count: number;
+        userIds: string[];
+        hasReacted: boolean;
+      }>;
     }) => {
       console.log("ChatList received new message:", message);
       // Refresh the chat list to show updated last message
@@ -92,31 +105,18 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       fetchChats(false); // Don't show loading for global updates
     };
 
-    const handleNewChat = (chatInfo: {
-      id: string;
-      name?: string;
-      type: 'direct' | 'group';
-    }) => {
-      console.log("ChatList received new chat:", chatInfo);
-      // Refresh the chat list to show new chat
-      fetchChats(false); // Don't show loading for new chats
-    };
+    console.log("ChatList: Setting up real-time listeners");
 
-    console.log("ChatList: Setting up socket listeners");
-
-    socket.on("message", handleNewMessage);
-    socket.on("chat_list_update", handleChatListUpdate);
-    socket.on("global_chat_list_update", handleGlobalChatListUpdate);
-    socket.on("new_chat", handleNewChat);
+    realtimeClient.onMessage(handleNewMessage);
+    realtimeClient.onChatListUpdate(handleChatListUpdate);
+    realtimeClient.onGlobalChatListUpdate(handleGlobalChatListUpdate);
+    // Note: onNewChat event handler would need to be added to the interface if needed
 
     return () => {
-      console.log("ChatList: Cleaning up socket listeners");
-      socket.off("message", handleNewMessage);
-      socket.off("chat_list_update", handleChatListUpdate);
-      socket.off("global_chat_list_update", handleGlobalChatListUpdate);
-      socket.off("new_chat", handleNewChat);
+      console.log("ChatList: Cleaning up real-time listeners");
+      realtimeClient.cleanup();
     };
-  }, [socket]);
+  }, [realtimeClient]);
 
   const fetchChats = async (showLoadingState = true) => {
     try {

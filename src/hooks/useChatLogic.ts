@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSocket } from "@/hooks/useSocket";
+import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
 
 interface Message {
@@ -54,7 +54,7 @@ interface Chat {
 }
 
 export function useChatLogic() {
-    const { socket } = useSocket();
+    const { client: realtimeClient } = useRealtime();
     const { user, isSignedIn, isLoaded } = useUser();
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -86,11 +86,11 @@ export function useChatLogic() {
         }
     }, [selectedChat]);
 
-    // Socket message listener
+    // Real-time message listener
     useEffect(() => {
-        if (!socket) return;
+        if (!realtimeClient) return;
 
-        socket.on("message", (msg: Message) => {
+        realtimeClient.onMessage((msg: Message) => {
             console.log("useChatLogic received message:", msg);
             console.log("Current user ID:", user?.id);
             console.log("Message sender ID:", msg.userId);
@@ -123,7 +123,7 @@ export function useChatLogic() {
         });
 
         // Listen for real-time reaction updates
-        socket.on("reaction_update", (data: {
+        realtimeClient.onReactionUpdate((data: {
             messageId: string;
             emoji: string;
             action: 'added' | 'removed';
@@ -133,7 +133,7 @@ export function useChatLogic() {
                 count: number;
                 userIds: string[];
                 hasReacted: boolean;
-            };
+            } | null;
             chatId: string;
             userId: string;
         }) => {
@@ -176,10 +176,9 @@ export function useChatLogic() {
         });
 
         return () => {
-            socket.off("message");
-            socket.off("reaction_update");
+            realtimeClient.cleanup();
         };
-    }, [socket, user, selectedChat]);
+    }, [realtimeClient, user, selectedChat]);
 
     // Sync user data to database when signing in
     useEffect(() => {
@@ -206,10 +205,10 @@ export function useChatLogic() {
         syncUser();
     }, [user, isSignedIn]);
 
-    // Join all user chats when socket connects
+    // Join all user chats when real-time client connects
     useEffect(() => {
         const joinAllChats = async () => {
-            if (!socket || !user) return;
+            if (!realtimeClient || !user) return;
 
             try {
                 // Fetch user's chats to join all chat rooms
@@ -220,7 +219,7 @@ export function useChatLogic() {
 
                     // Join all chat rooms
                     userChats.forEach((chat: Chat) => {
-                        socket.emit("join_chat", chat.id);
+                        realtimeClient.joinChat(chat.id);
                         console.log(`Requested to join chat room: ${chat.id}`);
                     });
                 }
@@ -230,20 +229,20 @@ export function useChatLogic() {
         };
 
         joinAllChats();
-    }, [socket, user]);
+    }, [realtimeClient, user]);
 
     // Manage chat room joining/leaving
     useEffect(() => {
-        if (!socket || !selectedChat) return;
+        if (!realtimeClient || !selectedChat) return;
 
         console.log(`Requesting to join chat room: ${selectedChat.id}`);
-        socket.emit("join_chat", selectedChat.id);
+        realtimeClient.joinChat(selectedChat.id);
 
         return () => {
             console.log(`Requesting to leave chat room: ${selectedChat.id}`);
-            socket.emit("leave_chat", selectedChat.id);
+            realtimeClient.leaveChat(selectedChat.id);
         };
-    }, [socket, selectedChat]);
+    }, [realtimeClient, selectedChat]);
 
     const sendMessage = async () => {
         if (input.trim() && user && !sendingMessage) {
@@ -302,8 +301,8 @@ export function useChatLogic() {
                     });
 
                     // Emit chat list update event for all participants
-                    if (socket) {
-                        socket.emit("chat_list_update", {
+                    if (realtimeClient) {
+                        realtimeClient.emitChatListUpdate({
                             chatId: chatId,
                             lastMessage: {
                                 content: messageContent,
@@ -314,7 +313,7 @@ export function useChatLogic() {
                         });
 
                         // Also emit a global chat list refresh event
-                        socket.emit("global_chat_list_update", {
+                        realtimeClient.emitGlobalChatListUpdate({
                             chatId: chatId,
                             triggerRefresh: true
                         });
@@ -328,17 +327,11 @@ export function useChatLogic() {
                     const errorText = await response.text();
                     console.error('Error saving message to database:', response.status, errorText);
                     const fallbackMsg = { ...msg, content: messageContent };
-                    if (socket) {
-                        socket.emit("message", fallbackMsg);
-                    }
                     setMessages(prev => [...prev, fallbackMsg]);
                 }
             } catch (error) {
                 console.error("Error saving message:", error);
                 const fallbackMsg = { ...msg, content: messageContent };
-                if (socket) {
-                    socket.emit("message", fallbackMsg);
-                }
                 setMessages(prev => [...prev, fallbackMsg]);
             } finally {
                 setSendingMessage(false);
@@ -467,17 +460,8 @@ export function useChatLogic() {
                 const updatedReaction = await response.json();
                 console.log('Updated reaction response:', updatedReaction); // Debug log
 
-                // Emit reaction update via socket for real-time updates
-                if (socket && selectedChat) {
-                    socket.emit("reaction_update", {
-                        messageId,
-                        emoji,
-                        action: updatedReaction.reaction === null ? 'removed' : 'added',
-                        reaction: updatedReaction.reaction,
-                        chatId: selectedChat.id,
-                        userId: user?.id
-                    });
-                }
+                // Real-time updates are handled by the API route
+                // No need to emit here as the API already does it
 
                 setMessages(prev => prev.map(msg => {
                     if (msg.id === messageId) {
@@ -559,10 +543,8 @@ export function useChatLogic() {
                 // Refresh chat list
                 setChatListRefresh(prev => prev + 1);
 
-                // Emit socket event to leave the room
-                if (socket) {
-                    socket.emit("leave_chat", groupId);
-                }
+                // Real-time updates are handled by the API route
+                // No need to emit here
             } else {
                 console.error("Failed to leave group:", response.statusText);
             }
@@ -592,10 +574,8 @@ export function useChatLogic() {
                 // Refresh chat list
                 setChatListRefresh(prev => prev + 1);
 
-                // Emit socket event for real-time updates
-                if (socket) {
-                    socket.emit("group_updated", { groupId, updates: updatedGroup });
-                }
+                // Real-time updates are handled by the API route
+                // No need to emit here
             } else {
                 console.error("Failed to update group:", response.statusText);
             }
@@ -617,10 +597,8 @@ export function useChatLogic() {
                 // Refresh chat list and current chat if needed
                 setChatListRefresh(prev => prev + 1);
 
-                // Emit socket event for real-time updates
-                if (socket) {
-                    socket.emit("member_removed", { groupId, memberId });
-                }
+                // Real-time updates are handled by the API route
+                // No need to emit here
             } else {
                 console.error("Failed to remove member:", response.statusText);
             }

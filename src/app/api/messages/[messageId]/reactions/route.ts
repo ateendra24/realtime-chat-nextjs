@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { messageReactions, messages, chatParticipants } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { pusher, CHANNELS, EVENTS } from '@/lib/pusher';
 
 // POST /api/messages/[messageId]/reactions - Add reaction to message
 export async function POST(
@@ -86,18 +87,21 @@ export async function POST(
                 };
 
                 // Emit real-time update to other users in the chat
-                if (global.io) {
-                    console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
-                    global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
-                        messageId,
-                        emoji,
-                        action: 'removed',
-                        reaction: null,
-                        chatId: message[0].chatId,
-                        userId: userId
-                    });
-                } else {
-                    console.log('global.io not available for reaction emission');
+                const reactionUpdateData = {
+                    messageId,
+                    emoji,
+                    action: 'removed',
+                    reaction: null,
+                    chatId: message[0].chatId,
+                    userId: userId
+                };
+
+                // Broadcast reaction update using Pusher
+                try {
+                    await pusher.trigger(CHANNELS.chat(message[0].chatId), EVENTS.reaction_update, reactionUpdateData);
+                    console.log(`Pusher reaction update emitted to channel: ${CHANNELS.chat(message[0].chatId)}`);
+                } catch (error) {
+                    console.error('Error emitting Pusher reaction update:', error);
                 }
 
                 return NextResponse.json(responseData);
@@ -118,18 +122,21 @@ export async function POST(
                 };
 
                 // Emit real-time update to other users in the chat
-                if (global.io) {
-                    console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
-                    global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
-                        messageId,
-                        emoji,
-                        action: 'removed',
-                        reaction: reactionData,
-                        chatId: message[0].chatId,
-                        userId: userId
-                    });
-                } else {
-                    console.log('global.io not available for reaction emission');
+                const reactionUpdateData = {
+                    messageId,
+                    emoji,
+                    action: 'removed',
+                    reaction: reactionData,
+                    chatId: message[0].chatId,
+                    userId: userId
+                };
+
+                // Broadcast reaction update using Pusher
+                try {
+                    await pusher.trigger(CHANNELS.chat(message[0].chatId), EVENTS.reaction_update, reactionUpdateData);
+                    console.log(`Pusher reaction update emitted to channel: ${CHANNELS.chat(message[0].chatId)}`);
+                } catch (error) {
+                    console.error('Error emitting Pusher reaction update:', error);
                 }
 
                 return NextResponse.json(responseData);
@@ -168,18 +175,21 @@ export async function POST(
             };
 
             // Emit real-time update to other users in the chat
-            if (global.io) {
-                console.log(`Emitting reaction_update to room: chat_${message[0].chatId}`);
-                global.io.to(`chat_${message[0].chatId}`).emit("reaction_update", {
-                    messageId,
-                    emoji,
-                    action: 'added',
-                    reaction: reactionData,
-                    chatId: message[0].chatId,
-                    userId: userId
-                });
-            } else {
-                console.log('global.io not available for reaction emission');
+            const reactionUpdateData = {
+                messageId,
+                emoji,
+                action: 'added',
+                reaction: reactionData,
+                chatId: message[0].chatId,
+                userId: userId
+            };
+
+            // Broadcast reaction update using Pusher
+            try {
+                await pusher.trigger(CHANNELS.chat(message[0].chatId), EVENTS.reaction_update, reactionUpdateData);
+                console.log(`Pusher reaction update emitted to channel: ${CHANNELS.chat(message[0].chatId)}`);
+            } catch (error) {
+                console.error('Error emitting Pusher reaction update:', error);
             }
 
             return NextResponse.json(responseData);
