@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { messages, users, messageReactions, chatParticipants, chats } from "@/db/schema";
 import { eq, desc, sql, inArray, and } from "drizzle-orm";
+import { pusher, CHANNELS, EVENTS } from "@/lib/pusher";
 
 export async function GET(
     req: NextRequest,
@@ -232,43 +233,45 @@ export async function POST(
             reactions: [],
         };
 
-        // Emit socket events to all participants
-        if (global.io) {
-            console.log("Emitting socket events for message in chat:", chatId);
+        // Emit real-time events
+        const messageData = {
+            id: newMessage.id,
+            user: userInfo.fullName || userInfo.username || 'Unknown User',
+            userId: newMessage.userId,
+            content: newMessage.content,
+            createdAt: newMessage.createdAt,
+            updatedAt: newMessage.editedAt,
+            avatarUrl: userInfo.avatarUrl,
+            isEdited: false,
+            isDeleted: false,
+            chatId: newMessage.chatId,
+            reactions: [],
+        };
 
-            // Emit global chat list update (to all connected users)
-            console.log("Emitting global_chat_list_update");
-            global.io.emit("global_chat_list_update", {
+        // Broadcast message using Pusher
+        try {
+            console.log("Emitting Pusher events for message in chat:", chatId);
+
+            // Emit message to chat channel
+            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData);
+
+            // Emit global chat list update
+            await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
                 message: newMessage.content,
                 sender: userId,
             });
 
-            // Emit to specific chat room
-            console.log("Emitting to chat room:", `chat_${chatId}`);
-            global.io.to(`chat_${chatId}`).emit("message", {
-                id: newMessage.id,
-                user: userInfo.fullName || userInfo.username || 'Unknown User',
-                userId: newMessage.userId,
-                content: newMessage.content,
-                createdAt: newMessage.createdAt,
-                updatedAt: newMessage.editedAt,
-                avatarUrl: userInfo.avatarUrl,
-                isEdited: false,
-                isDeleted: false,
-                chatId: newMessage.chatId,
-                reactions: [],
-            });
-
-            // Emit chat list update to all participants
-            console.log("Emitting chat_list_update to all participants");
-            global.io.emit("chat_list_update", {
+            // Emit chat list update to chat participants
+            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
             });
-        } else {
-            console.log("No socket server available");
+
+            console.log("Pusher events emitted successfully");
+        } catch (error) {
+            console.error("Error emitting Pusher events:", error);
         }
 
         return NextResponse.json({

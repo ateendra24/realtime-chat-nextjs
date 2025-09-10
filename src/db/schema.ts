@@ -75,11 +75,10 @@ export const messageReactions = pgTable("message_reactions", {
   messageUserEmojiUnique: unique().on(table.messageId, table.userId, table.emoji),
 }));
 
-// User sessions for real-time presence
+// User sessions for real-time presence (Pusher-based)
 export const userSessions = pgTable("user_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  socketId: varchar("socket_id", { length: 100 }).notNull(),
   isActive: boolean("is_active").default(true),
   lastActivity: timestamp("last_activity").defaultNow().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
