@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { chats, chatParticipants } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { pusher } from "@/lib/pusher";
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,13 +78,16 @@ export async function POST(request: NextRequest) {
       userId: participantId,
     });
 
-    // Broadcast new chat creation to all connected users
-    if (global.io) {
-      global.io.emit("new_chat", {
+    // Broadcast new chat creation to all connected users via Pusher
+    try {
+      await pusher.trigger(['user-' + userId, 'user-' + participantId], 'new-chat', {
         type: "direct",
         chatId: newChat.id,
         participants: [userId, participantId]
       });
+    } catch (pusherError) {
+      console.error("Failed to broadcast new chat via Pusher:", pusherError);
+      // Don't fail the request if Pusher broadcast fails
     }
 
     return NextResponse.json({ chat: newChat });

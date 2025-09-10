@@ -124,7 +124,7 @@ class PusherRealtimeClient implements RealtimeClient {
         this.isConnected = false;
       });
 
-      this.pusher.connection.bind('state_change', (states: any) => {
+      this.pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
         console.log('🔄 Pusher state change:', states.previous, '->', states.current);
       });
 
@@ -159,7 +159,7 @@ class PusherRealtimeClient implements RealtimeClient {
         console.log(`✅ Successfully subscribed to channel: chat-${chatId}`);
       });
 
-      channel.bind('pusher:subscription_error', (error: any) => {
+      channel.bind('pusher:subscription_error', (error: Error) => {
         console.error(`❌ Failed to subscribe to channel: chat-${chatId}`, error);
       });
 
