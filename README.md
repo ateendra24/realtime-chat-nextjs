@@ -171,7 +171,7 @@ npm install
 npm run dev
 ```
 
-This will start the Next.js app on [http://localhost:3001](http://localhost:3001) with real-time features powered by Pusher.
+This will start the Next.js app on [http://localhost:3000](http://localhost:3000) with real-time features powered by Pusher.
 
 ### 6. Production Deployment
 
@@ -301,7 +301,7 @@ sequenceDiagram
 
 ### Component Architecture
 
-````mermaid
+```mermaid
 graph TD
     subgraph Page ["Page Level"]
         CP[Chat Page] --> CL[ChatList]
@@ -351,7 +351,9 @@ graph TD
     class UCL,UR,UD,UP,PC hook
     class API,DB,PS data
     class CK,IK,PCH external
-```### Key Features in Detail
+```
+
+### Key Features in Detail
 
 #### Real-time Messaging
 
@@ -456,7 +458,7 @@ All tables include proper foreign key relationships, indexes for performance, an
 3. Set up environment variables (see setup instructions above)
 4. Run database migrations: `npm run db:push`
 5. Start development server: `npm run dev`
-6. Visit [http://localhost:3001](http://localhost:3001)
+6. Visit [http://localhost:3000](http://localhost:3000)
 
 ### Usage
 
@@ -490,4 +492,7 @@ MIT License - see [LICENSE](./LICENSE) file for details
 ---
 
 Built with ❤️ using Next.js 15, Pusher, and modern web technologies.
-````
+
+```
+
+```
