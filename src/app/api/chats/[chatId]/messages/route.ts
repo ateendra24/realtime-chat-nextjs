@@ -157,67 +157,66 @@ export async function POST(
             return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
         }
 
-        // Verify the user is a participant of the chat
-        console.log('Checking if user is participant of chat:', { chatId, userId });
+        // Get user information and verify participant status in a single query
+        console.log('Verifying user is participant and getting user info:', { chatId, userId });
 
-        const participant = await db
-            .select()
+        const participantAndUser = await db
+            .select({
+                // Participant fields
+                participantExists: chatParticipants.userId,
+                // User fields
+                fullName: users.fullName,
+                username: users.username,
+                avatarUrl: users.avatarUrl,
+            })
             .from(chatParticipants)
+            .innerJoin(users, eq(users.id, chatParticipants.userId))
             .where(and(
                 eq(chatParticipants.chatId, chatId),
                 eq(chatParticipants.userId, userId)
             ))
             .limit(1);
 
-        console.log('Participant check result:', participant.length > 0 ? 'Found' : 'Not found');
-
-        if (participant.length === 0) {
-            console.log('Error: User is not a participant of this chat');
+        if (participantAndUser.length === 0) {
+            console.log('Error: User is not a participant of this chat or user not found');
             return NextResponse.json({ error: "Unauthorized - Not a participant of this chat" }, { status: 403 });
         }
 
-        // Insert the new message
+        const userInfo = participantAndUser[0];
+        console.log('User verified as participant:', userInfo);
+
+        // Insert the new message and update chat in parallel for better performance
         console.log('Inserting new message into database');
 
-        const [newMessage] = await db
-            .insert(messages)
-            .values({
-                chatId,
-                userId,
-                content: content.trim(),
-                createdAt: new Date(),
-            })
-            .returning();
+        const [newMessage, _] = await Promise.all([
+            // Insert message
+            db.insert(messages)
+                .values({
+                    chatId,
+                    userId,
+                    content: content.trim(),
+                    createdAt: new Date(),
+                })
+                .returning()
+                .then(result => result[0]),
 
-        console.log('Message inserted successfully:', newMessage);
+            // Update chat metadata in parallel
+            db.update(chats)
+                .set({
+                    lastMessageAt: new Date(),
+                    messageCount: sql`${chats.messageCount} + 1`,
+                    updatedAt: new Date(),
+                })
+                .where(eq(chats.id, chatId))
+        ]);
 
-        // Update chat with last message info and increment message count
-        console.log('Updating chat with last message info');
+        console.log('Message inserted and chat updated:', newMessage);
 
+        // We'll update the lastMessageId separately after we have the message ID
         await db
             .update(chats)
-            .set({
-                lastMessageId: newMessage.id,
-                lastMessageAt: newMessage.createdAt,
-                messageCount: sql`${chats.messageCount} + 1`,
-                updatedAt: new Date(),
-            })
+            .set({ lastMessageId: newMessage.id })
             .where(eq(chats.id, chatId));
-
-        console.log('Chat updated with last message info');
-
-        // Get user information for the response
-        const user = await db
-            .select({
-                fullName: users.fullName,
-                username: users.username,
-                avatarUrl: users.avatarUrl,
-            })
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1);
-
-        const userInfo = user[0] || { fullName: 'Unknown User', username: 'unknown', avatarUrl: null };
 
         const responseMessage = {
             id: newMessage.id,
@@ -248,32 +247,42 @@ export async function POST(
             reactions: [],
         };
 
-        // Broadcast message using Pusher
-        try {
-            console.log("Emitting Pusher events for message in chat:", chatId);
+        // Broadcast message using Pusher (run in background for faster response)
+        const pusherBroadcast = async () => {
+            try {
+                console.log("Emitting Pusher events for message in chat:", chatId);
 
-            // Emit message to chat channel
-            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData);
+                // Run all Pusher events in parallel for maximum speed
+                await Promise.all([
+                    // Emit message to chat channel
+                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
 
-            // Emit global chat list update
-            await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
-                chatId,
-                messageId: newMessage.id,
-                message: newMessage.content,
-                sender: userId,
-            });
+                    // Emit global chat list update
+                    pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+                        chatId,
+                        messageId: newMessage.id,
+                        message: newMessage.content,
+                        sender: userId,
+                    }),
 
-            // Emit chat list update to chat participants
-            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
-                chatId,
-                messageId: newMessage.id,
-            });
+                    // Emit chat list update to chat participants
+                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+                        chatId,
+                        messageId: newMessage.id,
+                    })
+                ]);
 
-            console.log("Pusher events emitted successfully");
-        } catch (error) {
-            console.error("Error emitting Pusher events:", error);
-        }
+                console.log("✅ Pusher events emitted successfully");
+            } catch (pusherError) {
+                console.error("❌ Error emitting Pusher events:", pusherError);
+                // Don't fail the request if Pusher fails
+            }
+        };
 
+        // Start Pusher broadcast but don't wait for it (fire and forget for speed)
+        pusherBroadcast();
+
+        // Return response immediately without waiting for Pusher
         return NextResponse.json({
             message: responseMessage,
             success: true

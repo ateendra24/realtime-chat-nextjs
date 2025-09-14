@@ -30,7 +30,6 @@ export default function ChatPage() {
         setShowUserSearch,
         chatListRefresh,
         messagesLoading,
-        sendingMessage,
         scrollAreaRef,
         messagesEndRef,
         user,
@@ -113,7 +112,6 @@ export default function ChatPage() {
                         selectedChat={selectedChat}
                         input={input}
                         setInput={setInput}
-                        sendingMessage={sendingMessage}
                         onSendMessage={sendMessage}
                         onKeyPress={handleKeyPress}
                     />

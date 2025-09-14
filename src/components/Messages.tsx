@@ -16,6 +16,7 @@ interface Message {
     avatarUrl?: string;
     isEdited?: boolean;
     isDeleted?: boolean;
+    isOptimistic?: boolean; // For optimistic UI updates
     reactions?: Array<{
         id: string;
         emoji: string;
@@ -139,7 +140,7 @@ export function Messages({
                                             <p className="font-medium text-sm mb-1">{message.user || 'Unknown User'}</p>
                                         )}
                                         <div className={`relative w-fit ${isCurrentUser && 'ml-auto'}`}>
-                                            <div className={`px-3 py-2 rounded-lg w-fit ${isCurrentUser ? 'bg-primary  ml-auto' : 'bg-muted'}`}>
+                                            <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
                                                 <p className="text-sm">
                                                     {message.isDeleted ? (
                                                         <em className="text-muted-foreground/80">This message was deleted</em>
@@ -150,6 +151,13 @@ export function Messages({
                                                         <span className="text-xs text-muted-foreground ml-2">(edited)</span>
                                                     )}
                                                 </p>
+
+                                                {/* Show loading indicator for optimistic messages */}
+                                                {message.isOptimistic && (
+                                                    <div className="absolute -right-1 -top-1">
+                                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Message Actions */}

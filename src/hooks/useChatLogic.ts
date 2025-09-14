@@ -13,6 +13,7 @@ interface Message {
     avatarUrl?: string;
     isEdited?: boolean;
     isDeleted?: boolean;
+    isOptimistic?: boolean; // For optimistic UI updates
     reactions?: Array<{
         id: string;
         emoji: string;
@@ -63,7 +64,6 @@ export function useChatLogic() {
     const [showUserSearch, setShowUserSearch] = useState(false);
     const [chatListRefresh, setChatListRefresh] = useState(0);
     const [messagesLoading, setMessagesLoading] = useState(false);
-    const [sendingMessage, setSendingMessage] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -245,7 +245,7 @@ export function useChatLogic() {
     }, [realtimeClient, selectedChat]);
 
     const sendMessage = async () => {
-        if (input.trim() && user && !sendingMessage) {
+        if (input.trim() && user) {
             const chatId = selectedChat?.id;
 
             if (!chatId) {
@@ -253,20 +253,27 @@ export function useChatLogic() {
                 return;
             }
 
-            setSendingMessage(true);
+            const messageContent = input.trim();
+            const tempId = `temp_${Date.now()}_${Math.random()}`;
 
-            const msg: Message = {
-                id: Date.now().toString(),
+            // Create optimistic message to show immediately
+            const optimisticMessage: Message = {
+                id: tempId,
                 user: user.fullName || user.username || "Anonymous",
                 userId: user.id,
-                content: input,
+                content: messageContent,
                 createdAt: new Date(),
                 chatId: chatId,
                 avatarUrl: user.imageUrl,
+                isOptimistic: true, // Flag to identify optimistic messages
             };
 
-            const messageContent = input;
+            // Clear input and show message immediately
             setInput("");
+            setMessages((prev) => [...prev, optimisticMessage]);
+
+            // Scroll to bottom immediately for the sender's message
+            setTimeout(scrollToBottom, 0);
 
             try {
                 const response = await fetch(`/api/chats/${chatId}/messages`, {
@@ -283,58 +290,43 @@ export function useChatLogic() {
                     const result = await response.json();
                     console.log('Message saved successfully:', result);
 
-                    // Add the message optimistically to the current user's view
-                    // This ensures the sender sees their message immediately
-                    const optimisticMessage: Message = {
-                        ...msg,
-                        id: result.message.id, // Use the real ID from the server
-                        createdAt: new Date(result.message.createdAt),
-                    };
-
-                    setMessages((prev) => {
-                        // Check if message already exists to prevent duplicates
-                        const messageExists = prev.some(existingMsg => existingMsg.id === optimisticMessage.id);
-                        if (messageExists) {
-                            return prev;
-                        }
-                        return [...prev, optimisticMessage];
-                    });
-
-                    // Emit chat list update event for all participants
-                    if (realtimeClient) {
-                        realtimeClient.emitChatListUpdate({
-                            chatId: chatId,
-                            lastMessage: {
-                                content: messageContent,
-                                createdAt: result.message.createdAt,
-                                userName: user.fullName || user.username || "Anonymous",
-                                userId: user.id
+                    // Replace optimistic message with real message
+                    setMessages((prev) => prev.map(prevMsg =>
+                        prevMsg.id === tempId
+                            ? {
+                                ...prevMsg,
+                                id: result.message.id, // Use real ID from server
+                                createdAt: new Date(result.message.createdAt),
+                                isOptimistic: false, // Remove optimistic flag
                             }
-                        });
+                            : prevMsg
+                    ));
 
-                        // Also emit a global chat list refresh event
-                        realtimeClient.emitGlobalChatListUpdate({
-                            chatId: chatId,
-                            triggerRefresh: true
-                        });
-                    }
+                    // Mark the message as read for the sender (don't await to keep it fast)
+                    markLastMessageAsRead(chatId, result.message.id).catch(console.error);
 
-                    // Mark the message as read for the sender
-                    await markLastMessageAsRead(chatId, result.message.id);
-
+                    // Trigger chat list refresh (don't await to keep it fast)
                     setChatListRefresh(prev => prev + 1);
                 } else {
                     const errorText = await response.text();
                     console.error('Error saving message to database:', response.status, errorText);
-                    const fallbackMsg = { ...msg, content: messageContent };
-                    setMessages(prev => [...prev, fallbackMsg]);
+
+                    // Replace optimistic message with error state
+                    setMessages((prev) => prev.map(prevMsg =>
+                        prevMsg.id === tempId
+                            ? { ...prevMsg, isOptimistic: false, content: `❌ ${messageContent}` }
+                            : prevMsg
+                    ));
                 }
             } catch (error) {
                 console.error("Error saving message:", error);
-                const fallbackMsg = { ...msg, content: messageContent };
-                setMessages(prev => [...prev, fallbackMsg]);
-            } finally {
-                setSendingMessage(false);
+
+                // Replace optimistic message with error state
+                setMessages((prev) => prev.map(prevMsg =>
+                    prevMsg.id === tempId
+                        ? { ...prevMsg, isOptimistic: false, content: `❌ ${messageContent}` }
+                        : prevMsg
+                ));
             }
         }
     };
@@ -646,7 +638,6 @@ export function useChatLogic() {
         setShowUserSearch,
         chatListRefresh,
         messagesLoading,
-        sendingMessage,
         scrollAreaRef,
         messagesEndRef,
         user,

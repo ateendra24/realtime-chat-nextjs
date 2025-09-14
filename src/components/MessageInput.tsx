@@ -20,7 +20,6 @@ interface MessageInputProps {
     selectedChat: Chat | null;
     input: string;
     setInput: (value: string) => void;
-    sendingMessage: boolean;
     onSendMessage: () => void;
     onKeyPress: (e: React.KeyboardEvent) => void;
 }
@@ -29,7 +28,6 @@ export function MessageInput({
     selectedChat,
     input,
     setInput,
-    sendingMessage,
     onSendMessage,
     onKeyPress
 }: MessageInputProps) {
@@ -47,16 +45,10 @@ export function MessageInput({
             />
             <Button
                 onClick={onSendMessage}
-                disabled={!input.trim() || !selectedChat || sendingMessage}
+                disabled={!input.trim() || !selectedChat}
                 className='rounded-full w-16'
             >
-                {sendingMessage ? (
-                    <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    </>
-                ) : (
-                    <Send className="h-4 w-4" />
-                )}
+                <Send className="h-4 w-4" />
             </Button>
         </div>
     );
