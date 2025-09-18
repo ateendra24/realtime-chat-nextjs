@@ -64,8 +64,13 @@ export function useChatLogic() {
     const [showUserSearch, setShowUserSearch] = useState(false);
     const [chatListRefresh, setChatListRefresh] = useState(0);
     const [messagesLoading, setMessagesLoading] = useState(false);
+    const [hasMoreMessages, setHasMoreMessages] = useState(false);
+    const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollPositionRef = useRef<number>(0);
 
     // Function to scroll to bottom
     const scrollToBottom = () => {
@@ -74,15 +79,18 @@ export function useChatLogic() {
         }
     };
 
-    // Auto-scroll to bottom when messages change
+    // Auto-scroll to bottom when NEW messages are added (not when loading older ones)
     useEffect(() => {
-        scrollToBottom();
+        if (!isLoadingOlderMessages) {
+            // Small delay to ensure DOM is updated
+            setTimeout(scrollToBottom, 10);
+        }
     }, [messages]);
 
-    // Auto-scroll to bottom when chat changes
+    // Separate effect for chat changes (always scroll to bottom)
     useEffect(() => {
-        if (selectedChat) {
-            scrollToBottom(); // Remove setTimeout delay
+        if (selectedChat && !isLoadingOlderMessages) {
+            setTimeout(scrollToBottom, 50);
         }
     }, [selectedChat]);
 
@@ -341,6 +349,11 @@ export function useChatLogic() {
         setMessages([]);
         setShowCreateGroup(false);
         setMessagesLoading(true);
+        // Reset pagination state
+        setHasMoreMessages(false);
+        setNextCursor(null);
+        setLoadingMoreMessages(false);
+        setIsLoadingOlderMessages(false);
 
         // For group chats, fetch members data first
         let chatWithMembers = chat;
@@ -370,16 +383,26 @@ export function useChatLogic() {
         if (chat.id) {
             try {
                 // Fetch messages
-                const response = await fetch(`/api/chats/${chat.id}/messages`);
+                const response = await fetch(`/api/chats/${chat.id}/messages?limit=50`);
                 if (response.ok) {
-                    const chatMessages = await response.json();
-                    setMessages(chatMessages);
+                    const result = await response.json();
+                    // Handle both old format (array) and new format (object with pagination)
+                    if (Array.isArray(result)) {
+                        setMessages(result);
+                        setHasMoreMessages(false);
+                        setNextCursor(null);
+                    } else {
+                        setMessages(result.messages || []);
+                        setHasMoreMessages(result.hasMoreMessages || false);
+                        setNextCursor(result.nextCursor || null);
+                    }
                     setMessagesLoading(false);
                     scrollToBottom();
 
                     // Mark messages as read if there are messages
-                    if (chatMessages.length > 0) {
-                        const lastMessage = chatMessages[chatMessages.length - 1];
+                    const messageArray = Array.isArray(result) ? result : result.messages || [];
+                    if (messageArray.length > 0) {
+                        const lastMessage = messageArray[messageArray.length - 1];
                         await markLastMessageAsRead(chat.id, lastMessage.id);
                     }
                 } else {
@@ -406,6 +429,79 @@ export function useChatLogic() {
             setChatListRefresh(prev => prev + 1);
         } catch (error) {
             console.error('Error marking messages as read:', error);
+        }
+    };
+
+    const loadMoreMessages = async () => {
+        if (!selectedChat?.id || !nextCursor || loadingMoreMessages) {
+            return;
+        }
+
+        console.log('Loading more messages...');
+        setLoadingMoreMessages(true);
+        setIsLoadingOlderMessages(true);
+        
+        // Get the scroll container (it might be a child of scrollAreaRef)
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') || scrollAreaRef.current;
+        
+        if (!scrollContainer) {
+            console.warn('Scroll container not found');
+            setLoadingMoreMessages(false);
+            setIsLoadingOlderMessages(false);
+            return;
+        }
+
+        // Store current scroll info
+        const beforeScrollHeight = scrollContainer.scrollHeight;
+        const beforeScrollTop = scrollContainer.scrollTop;
+        
+        console.log('Before load - ScrollTop:', beforeScrollTop, 'ScrollHeight:', beforeScrollHeight);
+        
+        try {
+            const response = await fetch(`/api/chats/${selectedChat.id}/messages?limit=50&before=${nextCursor}`);
+            if (response.ok) {
+                const result = await response.json();
+                
+                if (Array.isArray(result)) {
+                    setMessages(prev => [...result, ...prev]);
+                    setHasMoreMessages(false);
+                    setNextCursor(null);
+                } else {
+                    const newMessages = result.messages || [];
+                    console.log('Loaded', newMessages.length, 'older messages');
+                    setMessages(prev => [...newMessages, ...prev]);
+                    setHasMoreMessages(result.hasMoreMessages || false);
+                    setNextCursor(result.nextCursor || null);
+                }
+                
+                // Use multiple animation frames to ensure DOM is fully updated
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        const afterScrollHeight = scrollContainer.scrollHeight;
+                        const heightDifference = afterScrollHeight - beforeScrollHeight;
+                        const newScrollTop = beforeScrollTop + heightDifference;
+                        
+                        console.log('After load - ScrollHeight:', afterScrollHeight, 'HeightDiff:', heightDifference, 'NewScrollTop:', newScrollTop);
+                        
+                        scrollContainer.scrollTop = newScrollTop;
+                        
+                        // Verify the scroll position was set correctly
+                        setTimeout(() => {
+                            console.log('Final ScrollTop:', scrollContainer.scrollTop);
+                            setIsLoadingOlderMessages(false);
+                        }, 100);
+                    });
+                });
+                
+            } else {
+                console.error("Failed to load more messages:", response.statusText);
+                setIsLoadingOlderMessages(false);
+            }
+        } catch (error) {
+            console.error("Error loading more messages:", error);
+            setIsLoadingOlderMessages(false);
+        } finally {
+            setLoadingMoreMessages(false);
         }
     };
 
@@ -638,6 +734,8 @@ export function useChatLogic() {
         setShowUserSearch,
         chatListRefresh,
         messagesLoading,
+        hasMoreMessages,
+        loadingMoreMessages,
         scrollAreaRef,
         messagesEndRef,
         user,
@@ -648,6 +746,7 @@ export function useChatLogic() {
         sendMessage,
         handleKeyPress,
         handleChatSelect,
+        loadMoreMessages,
         handleGroupCreated,
         handleDirectChat,
         handleLeaveGroup,
