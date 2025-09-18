@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { messages, users, messageReactions, chatParticipants, chats } from "@/db/schema";
-import { eq, desc, sql, inArray, and } from "drizzle-orm";
+import { eq, desc, sql, inArray, and, lt } from "drizzle-orm";
 import { pusher, CHANNELS, EVENTS } from "@/lib/pusher";
 
 export async function GET(
@@ -16,12 +16,26 @@ export async function GET(
         }
 
         const { chatId } = await params;
+        const { searchParams } = new URL(req.url);
+        const limit = parseInt(searchParams.get('limit') || '50');
+        const before = searchParams.get('before'); // Cursor for pagination (message ID or timestamp)
 
         if (!chatId) {
             return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
         }
 
-        // Fetch messages for the chat with user information
+        // Build the base condition for the query
+        let whereCondition = eq(messages.chatId, chatId);
+
+        // Add cursor condition if provided (for loading older messages)
+        if (before) {
+            whereCondition = and(
+                whereCondition,
+                lt(messages.createdAt, new Date(before))
+            )!;
+        }
+
+        // Fetch messages with pagination
         const chatMessages = await db
             .select({
                 id: messages.id,
@@ -36,12 +50,16 @@ export async function GET(
             })
             .from(messages)
             .innerJoin(users, eq(messages.userId, users.id))
-            .where(eq(messages.chatId, chatId))
+            .where(whereCondition)
             .orderBy(desc(messages.createdAt))
-            .limit(100); // Limit to last 100 messages
+            .limit(limit + 1); // Fetch one extra to check if there are more messages
+
+        // Check if there are more messages
+        const hasMoreMessages = chatMessages.length > limit;
+        const messagesToReturn = hasMoreMessages ? chatMessages.slice(0, limit) : chatMessages;
 
         // Fetch reactions for all messages
-        const messageIds = chatMessages.map(msg => msg.id);
+        const messageIds = messagesToReturn.map(msg => msg.id);
         const reactions = messageIds.length > 0 ? await db
             .select({
                 messageId: messageReactions.messageId,
@@ -91,7 +109,7 @@ export async function GET(
         }, {} as Record<string, Set<string>>);
 
         // Transform the messages to match the expected format
-        const formattedMessages = chatMessages.map(msg => {
+        const formattedMessages = messagesToReturn.map(msg => {
             const msgReactions = reactionsByMessage[msg.id] || {};
             const userMsgReactions = userReactionMap[msg.id] || new Set();
 
@@ -118,7 +136,12 @@ export async function GET(
             };
         }).reverse(); // Reverse to show oldest first
 
-        return NextResponse.json(formattedMessages);
+        // Return messages with pagination info
+        return NextResponse.json({
+            messages: formattedMessages,
+            hasMoreMessages,
+            nextCursor: hasMoreMessages ? messagesToReturn[messagesToReturn.length - 1]?.createdAt.toISOString() : null
+        });
     } catch (error) {
         console.error("Error fetching messages:", error);
         return NextResponse.json(
