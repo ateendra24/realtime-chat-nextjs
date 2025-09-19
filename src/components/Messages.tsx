@@ -1,7 +1,8 @@
 import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquare, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Loader2, ChevronUp } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import moment from 'moment';
 
@@ -49,6 +50,9 @@ interface MessagesProps {
     onReaction?: (messageId: string, emoji: string) => void;
     onEditMessage?: (messageId: string) => void;
     onDeleteMessage?: (messageId: string) => void;
+    onLoadMoreMessages?: () => void;
+    hasMoreMessages?: boolean;
+    loadingMoreMessages?: boolean;
 }
 
 // Helper function to format date separator
@@ -76,7 +80,10 @@ export function Messages({
     scrollAreaRef,
     onReaction,
     onEditMessage,
-    onDeleteMessage
+    onDeleteMessage,
+    onLoadMoreMessages,
+    hasMoreMessages = false,
+    loadingMoreMessages = false
 }: MessagesProps) {
     return (
         <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
@@ -98,7 +105,34 @@ export function Messages({
                         <p>No messages yet. Start the conversation!</p>
                     </div>
                 ) : (
-                    messages.map((message, index) => {
+                    <div className="space-y-2">
+                        {/* Load More Messages Button */}
+                        {hasMoreMessages && (
+                            <div className="flex justify-center py-4">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={onLoadMoreMessages}
+                                    disabled={loadingMoreMessages}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    {loadingMoreMessages ? (
+                                        <>
+                                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ChevronUp className="h-3 w-3 mr-2" />
+                                            Load older messages
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Messages List */}
+                        {messages.map((message, index) => {
                         const isCurrentUser = message.userId === currentUserId;
                         const isGroupChat = selectedChat.type === 'group';
                         const formattedTime = moment(message.createdAt).format('LT');
@@ -125,7 +159,10 @@ export function Messages({
                                 )}
 
                                 {/* Message */}
-                                <div className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                                <div 
+                                    className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}
+                                    data-message-id={message.id}
+                                >
                                     {shouldShowAvatar ? (
                                         <Avatar className="w-8 h-8">
                                             <AvatarImage src={message.avatarUrl} alt={message.user || 'User'} />
@@ -208,7 +245,8 @@ export function Messages({
                                 </div>
                             </React.Fragment>
                         );
-                    })
+                    })}
+                    </div>
                 )}
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />

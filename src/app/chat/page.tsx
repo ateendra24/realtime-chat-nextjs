@@ -30,6 +30,8 @@ export default function ChatPage() {
         setShowUserSearch,
         chatListRefresh,
         messagesLoading,
+        hasMoreMessages,
+        loadingMoreMessages,
         scrollAreaRef,
         messagesEndRef,
         user,
@@ -39,6 +41,7 @@ export default function ChatPage() {
         sendMessage,
         handleKeyPress,
         handleChatSelect,
+        loadMoreMessages,
         handleGroupCreated,
         handleDirectChat,
         handleLeaveGroup,
@@ -106,6 +109,9 @@ export default function ChatPage() {
                         onReaction={handleReaction}
                         onEditMessage={handleEditMessage}
                         onDeleteMessage={handleDeleteMessage}
+                        onLoadMoreMessages={loadMoreMessages}
+                        hasMoreMessages={hasMoreMessages}
+                        loadingMoreMessages={loadingMoreMessages}
                     />
 
                     <MessageInput

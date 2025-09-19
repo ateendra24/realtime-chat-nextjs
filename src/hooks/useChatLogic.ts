@@ -440,10 +440,10 @@ export function useChatLogic() {
         console.log('Loading more messages...');
         setLoadingMoreMessages(true);
         setIsLoadingOlderMessages(true);
-        
+
         // Get the scroll container (it might be a child of scrollAreaRef)
         const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') || scrollAreaRef.current;
-        
+
         if (!scrollContainer) {
             console.warn('Scroll container not found');
             setLoadingMoreMessages(false);
@@ -454,14 +454,14 @@ export function useChatLogic() {
         // Store current scroll info
         const beforeScrollHeight = scrollContainer.scrollHeight;
         const beforeScrollTop = scrollContainer.scrollTop;
-        
+
         console.log('Before load - ScrollTop:', beforeScrollTop, 'ScrollHeight:', beforeScrollHeight);
-        
+
         try {
             const response = await fetch(`/api/chats/${selectedChat.id}/messages?limit=50&before=${nextCursor}`);
             if (response.ok) {
                 const result = await response.json();
-                
+
                 if (Array.isArray(result)) {
                     setMessages(prev => [...result, ...prev]);
                     setHasMoreMessages(false);
@@ -473,18 +473,18 @@ export function useChatLogic() {
                     setHasMoreMessages(result.hasMoreMessages || false);
                     setNextCursor(result.nextCursor || null);
                 }
-                
+
                 // Use multiple animation frames to ensure DOM is fully updated
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         const afterScrollHeight = scrollContainer.scrollHeight;
                         const heightDifference = afterScrollHeight - beforeScrollHeight;
                         const newScrollTop = beforeScrollTop + heightDifference;
-                        
+
                         console.log('After load - ScrollHeight:', afterScrollHeight, 'HeightDiff:', heightDifference, 'NewScrollTop:', newScrollTop);
-                        
+
                         scrollContainer.scrollTop = newScrollTop;
-                        
+
                         // Verify the scroll position was set correctly
                         setTimeout(() => {
                             console.log('Final ScrollTop:', scrollContainer.scrollTop);
@@ -492,7 +492,7 @@ export function useChatLogic() {
                         }, 100);
                     });
                 });
-                
+
             } else {
                 console.error("Failed to load more messages:", response.statusText);
                 setIsLoadingOlderMessages(false);
