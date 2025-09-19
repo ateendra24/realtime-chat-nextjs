@@ -133,119 +133,119 @@ export function Messages({
 
                         {/* Messages List */}
                         {messages.map((message, index) => {
-                        const isCurrentUser = message.userId === currentUserId;
-                        const isGroupChat = selectedChat.type === 'group';
-                        const formattedTime = moment(message.createdAt).format('LT');
+                            const isCurrentUser = message.userId === currentUserId;
+                            const isGroupChat = selectedChat.type === 'group';
+                            const formattedTime = moment(message.createdAt).format('LT');
 
-                        // Date and grouping logic
-                        const showDate = index === 0 || !moment(message.createdAt).isSame(moment(messages[index - 1].createdAt), 'day');
-                        const isSameUserAsPrev = index > 0 && messages[index - 1].userId === message.userId && !showDate;
-                        const isSameUserAsNext = index < messages.length - 1 && messages[index + 1].userId === message.userId &&
-                            moment(message.createdAt).isSame(moment(messages[index + 1].createdAt), 'day');
+                            // Date and grouping logic
+                            const showDate = index === 0 || !moment(message.createdAt).isSame(moment(messages[index - 1].createdAt), 'day');
+                            const isSameUserAsPrev = index > 0 && messages[index - 1].userId === message.userId && !showDate;
+                            const isSameUserAsNext = index < messages.length - 1 && messages[index + 1].userId === message.userId &&
+                                moment(message.createdAt).isSame(moment(messages[index + 1].createdAt), 'day');
 
-                        const shouldShowAvatar = isGroupChat && !isSameUserAsPrev;
-                        const shouldShowTimestamp = !isSameUserAsNext;
+                            const shouldShowAvatar = isGroupChat && !isSameUserAsPrev;
+                            const shouldShowTimestamp = !isSameUserAsNext;
 
-                        return (
-                            <React.Fragment key={`${message.id}-${index}`}>
+                            return (
+                                <React.Fragment key={`${message.id}-${index}`}>
 
-                                {/* Date Separator */}
-                                {showDate && (
-                                    <div className="flex justify-center my-4">
-                                        <div className="bg-muted/60 text-muted-foreground text-xs px-3 py-1.5 rounded-full shadow-sm">
-                                            {formatDateSeparator(moment(message.createdAt))}
+                                    {/* Date Separator */}
+                                    {showDate && (
+                                        <div className="flex justify-center my-4">
+                                            <div className="bg-muted/60 text-muted-foreground text-xs px-3 py-1.5 rounded-full shadow-sm">
+                                                {formatDateSeparator(moment(message.createdAt))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Message */}
-                                <div 
-                                    className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}
-                                    data-message-id={message.id}
-                                >
-                                    {shouldShowAvatar ? (
-                                        <Avatar className="w-8 h-8">
-                                            <AvatarImage src={message.avatarUrl} alt={message.user || 'User'} />
-                                            <AvatarFallback>{(message.user || 'U').charAt(0).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                    ) : isGroupChat ? (
-                                        <div className="w-8 h-8" />
-                                    ) : null}
+                                    {/* Message */}
+                                    <div
+                                        className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}
+                                        data-message-id={message.id}
+                                    >
+                                        {shouldShowAvatar ? (
+                                            <Avatar className="w-8 h-8">
+                                                <AvatarImage src={message.avatarUrl} alt={message.user || 'User'} />
+                                                <AvatarFallback>{(message.user || 'U').charAt(0).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                        ) : isGroupChat ? (
+                                            <div className="w-8 h-8" />
+                                        ) : null}
 
-                                    <div className={`flex-1 max-w-xs ${isCurrentUser ? 'text-right' : ''}`}>
-                                        {shouldShowAvatar && !isCurrentUser && (
-                                            <p className="font-medium text-sm mb-1">{message.user || 'Unknown User'}</p>
-                                        )}
-                                        <div className={`relative w-fit ${isCurrentUser && 'ml-auto'}`}>
-                                            <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
-                                                <p className="text-sm">
-                                                    {message.isDeleted ? (
-                                                        <em className="text-muted-foreground/80">This message was deleted</em>
-                                                    ) : (
-                                                        message.content
+                                        <div className={`flex-1 max-w-xs ${isCurrentUser ? 'text-right' : ''}`}>
+                                            {shouldShowAvatar && !isCurrentUser && (
+                                                <p className="font-medium text-sm mb-1">{message.user || 'Unknown User'}</p>
+                                            )}
+                                            <div className={`relative w-fit ${isCurrentUser && 'ml-auto'}`}>
+                                                <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                                    <p className="text-sm">
+                                                        {message.isDeleted ? (
+                                                            <em className="text-muted-foreground/80">This message was deleted</em>
+                                                        ) : (
+                                                            message.content
+                                                        )}
+                                                        {message.isEdited && !message.isDeleted && (
+                                                            <span className="text-xs text-muted-foreground ml-2">(edited)</span>
+                                                        )}
+                                                    </p>
+
+                                                    {/* Show loading indicator for optimistic messages */}
+                                                    {message.isOptimistic && (
+                                                        <div className="absolute -right-1 -top-1">
+                                                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                        </div>
                                                     )}
-                                                    {message.isEdited && !message.isDeleted && (
-                                                        <span className="text-xs text-muted-foreground ml-2">(edited)</span>
-                                                    )}
-                                                </p>
+                                                </div>
 
-                                                {/* Show loading indicator for optimistic messages */}
-                                                {message.isOptimistic && (
-                                                    <div className="absolute -right-1 -top-1">
-                                                        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                {/* Message Actions */}
+                                                {!message.isDeleted && (
+                                                    <div className={`absolute top-0 ${isCurrentUser ? '-left-7' : '-right-7'}`}>
+                                                        <MessageActions
+                                                            messageId={message.id}
+                                                            isOwnMessage={message.userId === currentUserId}
+                                                            onReaction={onReaction || (() => { })}
+                                                            onEdit={onEditMessage}
+                                                            onDelete={onDeleteMessage}
+                                                        />
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Message Actions */}
-                                            {!message.isDeleted && (
-                                                <div className={`absolute top-0 ${isCurrentUser ? '-left-7' : '-right-7'}`}>
-                                                    <MessageActions
-                                                        messageId={message.id}
-                                                        isOwnMessage={message.userId === currentUserId}
-                                                        onReaction={onReaction || (() => { })}
-                                                        onEdit={onEditMessage}
-                                                        onDelete={onDeleteMessage}
-                                                    />
+                                            {/* Message Reactions */}
+                                            {message.reactions && message.reactions.length > 0 && (
+                                                <div className={`flex flex-wrap gap-1 mt-1 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                                                    {message.reactions.map((reaction, index) => {
+                                                        // Debug log to see reaction structure
+                                                        if (index === 0) console.log('Reaction object:', reaction);
+
+                                                        return (
+                                                            <div
+                                                                key={reaction?.id || `${reaction?.emoji || 'emoji'}-${reaction?.count || 0}-${index}`}
+                                                                className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs border cursor-pointer transition-colors ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
+                                                                    ? 'bg-primary/20 border-primary text-black dark:text-white'
+                                                                    : 'bg-muted border-muted-foreground/20 hover:bg-muted/80'
+                                                                    }`}
+                                                                title={`${reaction?.count || 0} reaction${(reaction?.count || 0) > 1 ? 's' : ''}`}
+                                                                onClick={() => reaction?.emoji && onReaction?.(message.id, reaction.emoji)}
+                                                            >
+                                                                <span>{reaction?.emoji || '?'}</span>
+                                                                <span className="font-medium">{reaction?.count || 0}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
+
+                                            {shouldShowTimestamp && (
+                                                <span className={`text-[10px] text-muted-foreground mt-1 block ${isCurrentUser ? 'text-right text-white/70' : 'text-left'}`}>
+                                                    {formattedTime}
+                                                </span>
+                                            )}
                                         </div>
-
-                                        {/* Message Reactions */}
-                                        {message.reactions && message.reactions.length > 0 && (
-                                            <div className={`flex flex-wrap gap-1 mt-1 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                                                {message.reactions.map((reaction, index) => {
-                                                    // Debug log to see reaction structure
-                                                    if (index === 0) console.log('Reaction object:', reaction);
-
-                                                    return (
-                                                        <div
-                                                            key={reaction?.id || `${reaction?.emoji || 'emoji'}-${reaction?.count || 0}-${index}`}
-                                                            className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs border cursor-pointer transition-colors ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
-                                                                ? 'bg-primary/20 border-primary text-black dark:text-white'
-                                                                : 'bg-muted border-muted-foreground/20 hover:bg-muted/80'
-                                                                }`}
-                                                            title={`${reaction?.count || 0} reaction${(reaction?.count || 0) > 1 ? 's' : ''}`}
-                                                            onClick={() => reaction?.emoji && onReaction?.(message.id, reaction.emoji)}
-                                                        >
-                                                            <span>{reaction?.emoji || '?'}</span>
-                                                            <span className="font-medium">{reaction?.count || 0}</span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-
-                                        {shouldShowTimestamp && (
-                                            <span className={`text-[10px] text-muted-foreground mt-1 block ${isCurrentUser ? 'text-right text-white/70' : 'text-left'}`}>
-                                                {formattedTime}
-                                            </span>
-                                        )}
                                     </div>
-                                </div>
-                            </React.Fragment>
-                        );
-                    })}
+                                </React.Fragment>
+                            );
+                        })}
                     </div>
                 )}
                 {/* Scroll anchor - always at the bottom */}
