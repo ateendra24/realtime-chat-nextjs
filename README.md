@@ -431,7 +431,7 @@ All tables include proper foreign key relationships, indexes for performance, an
 
 - [ ] **Typing indicators** - Show when users are composing messages
 - [ ] **File/image sharing** - Upload and share multimedia content
-- [ ] **Message search** - Search through chat history across all conversations
+- [x] **Message search** - Search through chat history across all conversations
 - [ ] **Push notifications** - Browser notifications for new messages when app is minimized
 - [ ] **Message threading** - Reply to specific messages with threaded conversations
 - [ ] **Voice messages** - Record and send audio messages
@@ -442,7 +442,7 @@ All tables include proper foreign key relationships, indexes for performance, an
 
 ### Technical Improvements
 
-- [ ] **Message pagination** - Load older messages on demand for better performance
+- [x] **Message pagination** - Load older messages on demand for better performance
 - [ ] **Offline support** - Queue messages when connection is lost
 - [ ] **Message delivery status** - Sent/delivered/read indicators
 - [ ] **Custom themes** - User-selectable color schemes and customization

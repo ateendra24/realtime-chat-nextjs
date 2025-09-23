@@ -72,6 +72,38 @@ export function useChatLogic() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollPositionRef = useRef<number>(0);
 
+    // Search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Message[]>([]);
+    const [currentSearchResultIndex, setCurrentSearchResultIndex] = useState(0);
+
+    // Perform local search when query or messages change
+    useEffect(() => {
+        if (searchQuery) {
+            const results = messages.filter(
+                (message) =>
+                    !message.isDeleted &&
+                    message.content.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            setSearchResults(results);
+            setCurrentSearchResultIndex(0);
+        } else {
+            setSearchResults([]);
+        }
+    }, [searchQuery, messages]);
+
+    const handleNextSearchResult = () => {
+        if (searchResults.length > 0) {
+            setCurrentSearchResultIndex((prevIndex) => (prevIndex + 1) % searchResults.length);
+        }
+    };
+
+    const handlePrevSearchResult = () => {
+        if (searchResults.length > 0) {
+            setCurrentSearchResultIndex((prevIndex) => (prevIndex - 1 + searchResults.length) % searchResults.length);
+        }
+    };
+
     // Function to scroll to bottom
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -756,5 +788,12 @@ export function useChatLogic() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        // Search
+        searchQuery,
+        setSearchQuery,
+        searchResults,
+        currentSearchResultIndex,
+        handleNextSearchResult,
+        handlePrevSearchResult,
     };
 }
