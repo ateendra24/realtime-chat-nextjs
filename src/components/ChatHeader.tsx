@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Info } from "lucide-react";
+import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
+import { SearchMessages } from './SearchMessages';
 
 interface Chat {
     id: string;
@@ -24,6 +25,11 @@ interface ChatHeaderProps {
     onUpdateGroup?: (groupId: string, updates: { name?: string; description?: string; avatarUrl?: string | null }) => void;
     onRemoveMember?: (groupId: string, memberId: string) => void;
     onRefreshMembers?: () => void;
+    onSearch?: (query: string) => void;
+    searchResultCount?: number;
+    currentSearchResultIndex?: number;
+    onNextSearchResult?: () => void;
+    onPrevSearchResult?: () => void;
 }
 
 export function ChatHeader({
@@ -31,9 +37,16 @@ export function ChatHeader({
     onLeaveGroup,
     onUpdateGroup,
     onRemoveMember,
-    onRefreshMembers
+    onRefreshMembers,
+    onSearch,
+    searchResultCount,
+    currentSearchResultIndex,
+    onNextSearchResult,
+    onPrevSearchResult,
 }: ChatHeaderProps) {
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleHeaderClick = () => {
         if (selectedChat?.type === 'group') {
@@ -41,9 +54,15 @@ export function ChatHeader({
         }
     };
 
+    useEffect(() => {
+        if (onSearch) {
+            onSearch(searchQuery);
+        }
+    }, [searchQuery, onSearch]);
+
     return (
         <>
-            <div className="flex items-center justify-between p-3 border-b">
+            <div className="flex items-center justify-between p-3 border-b relative">
                 <div className="flex items-center space-x-3">
                     <SidebarTrigger />
                     {selectedChat && (
@@ -72,29 +91,43 @@ export function ChatHeader({
                     )}
                 </div>
 
-                {/* Group Info Button */}
-                {selectedChat?.type === 'group' && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleHeaderClick}
-                        className="h-8 w-8 p-0"
-                    >
-                        <Info className="h-4 w-4" />
-                    </Button>
-                )}
+                <div className="flex items-center space-x-2">
+                    {selectedChat && (
+                        <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
+                            <Search className="h-5 w-5" />
+                        </Button>
+                    )}
+                    {selectedChat?.type === 'group' && (
+                        <Button variant="ghost" size="icon" onClick={() => setIsGroupInfoOpen(true)}>
+                            <Info className="h-5 w-5" />
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            {/* Group Info Sheet */}
-            <GroupInfoSheet
-                isOpen={isGroupInfoOpen}
-                onOpenChange={setIsGroupInfoOpen}
-                selectedChat={selectedChat}
-                onLeaveGroup={onLeaveGroup}
-                onUpdateGroup={onUpdateGroup}
-                onRemoveMember={onRemoveMember}
-                onRefreshMembers={onRefreshMembers}
-            />
+            {showSearch && (
+                <SearchMessages
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    searchResultCount={searchResultCount || 0}
+                    currentResultIndex={currentSearchResultIndex || 0}
+                    handleNextResult={onNextSearchResult || (() => { })}
+                    handlePrevResult={onPrevSearchResult || (() => { })}
+                    onClose={() => { setShowSearch(false); setSearchQuery(''); }}
+                />
+            )}
+
+            {selectedChat?.type === 'group' && (
+                <GroupInfoSheet
+                    isOpen={isGroupInfoOpen}
+                    onOpenChange={setIsGroupInfoOpen}
+                    selectedChat={selectedChat}
+                    onLeaveGroup={onLeaveGroup}
+                    onUpdateGroup={onUpdateGroup}
+                    onRemoveMember={onRemoveMember}
+                    onRefreshMembers={onRefreshMembers}
+                />
+            )}
         </>
     );
 }

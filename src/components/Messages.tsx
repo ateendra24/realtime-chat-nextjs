@@ -53,6 +53,8 @@ interface MessagesProps {
     onLoadMoreMessages?: () => void;
     hasMoreMessages?: boolean;
     loadingMoreMessages?: boolean;
+    searchResults?: Message[];
+    currentSearchResultIndex?: number;
 }
 
 // Helper function to format date separator
@@ -83,8 +85,24 @@ export function Messages({
     onDeleteMessage,
     onLoadMoreMessages,
     hasMoreMessages = false,
-    loadingMoreMessages = false
+    loadingMoreMessages = false,
+    searchResults = [],
+    currentSearchResultIndex = 0,
 }: MessagesProps) {
+    const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+    React.useEffect(() => {
+        if (searchResults.length > 0) {
+            const currentResult = searchResults[currentSearchResultIndex];
+            if (currentResult) {
+                const ref = messageRefs.current[currentResult.id];
+                if (ref) {
+                    ref.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+    }, [searchResults, currentSearchResultIndex]);
+
     return (
         <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
             <div className="p-4 h-full">
@@ -136,6 +154,8 @@ export function Messages({
                             const isCurrentUser = message.userId === currentUserId;
                             const isGroupChat = selectedChat.type === 'group';
                             const formattedTime = moment(message.createdAt).format('LT');
+                            const isSearchResult = searchResults.length > 0 && searchResults[currentSearchResultIndex]?.id === message.id;
+
 
                             // Date and grouping logic
                             const showDate = index === 0 || !moment(message.createdAt).isSame(moment(messages[index - 1].createdAt), 'day');
@@ -160,7 +180,8 @@ export function Messages({
 
                                     {/* Message */}
                                     <div
-                                        className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}
+                                        ref={el => { messageRefs.current[message.id] = el; }}
+                                        className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''} ${isSearchResult && 'bg-primary/10'}`}
                                         data-message-id={message.id}
                                     >
                                         {shouldShowAvatar ? (
