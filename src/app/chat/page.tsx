@@ -51,6 +51,13 @@ export default function ChatPage() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        // Search
+        searchQuery,
+        setSearchQuery,
+        searchResults,
+        currentSearchResultIndex,
+        handleNextSearchResult,
+        handlePrevSearchResult,
     } = useChatLogic();
 
     useEffect(() => {
@@ -97,6 +104,11 @@ export default function ChatPage() {
                         onUpdateGroup={handleUpdateGroup}
                         onRemoveMember={handleRemoveMember}
                         onRefreshMembers={refreshMembers}
+                        onSearch={setSearchQuery}
+                        searchResultCount={searchResults.length}
+                        currentSearchResultIndex={currentSearchResultIndex}
+                        onNextSearchResult={handleNextSearchResult}
+                        onPrevSearchResult={handlePrevSearchResult}
                     />
 
                     <Messages
@@ -112,6 +124,8 @@ export default function ChatPage() {
                         onLoadMoreMessages={loadMoreMessages}
                         hasMoreMessages={hasMoreMessages}
                         loadingMoreMessages={loadingMoreMessages}
+                        searchResults={searchResults}
+                        currentSearchResultIndex={currentSearchResultIndex}
                     />
 
                     <MessageInput
