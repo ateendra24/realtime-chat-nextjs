@@ -71,6 +71,7 @@ export function useChatLogic() {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const scrollPositionRef = useRef<number>(0);
+    const isUpdatingReactionsRef = useRef(false);
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -111,12 +112,14 @@ export function useChatLogic() {
         }
     };
 
-    // Auto-scroll to bottom when NEW messages are added (not when loading older ones)
+    // Auto-scroll to bottom when NEW messages are added (not when loading older ones or updating reactions)
     useEffect(() => {
-        if (!isLoadingOlderMessages) {
+        if (!isLoadingOlderMessages && !isUpdatingReactionsRef.current) {
             // Small delay to ensure DOM is updated
             setTimeout(scrollToBottom, 10);
         }
+        // Reset the reaction flag after processing
+        isUpdatingReactionsRef.current = false;
     }, [messages]);
 
     // Separate effect for chat changes (always scroll to bottom)
@@ -181,6 +184,7 @@ export function useChatLogic() {
 
             // Only update if it's for the current chat and not from the current user
             if (selectedChat && data.chatId === selectedChat.id && user && data.userId !== user.id) {
+                isUpdatingReactionsRef.current = true;
                 setMessages(prev => prev.map(msg => {
                     if (msg.id === data.messageId) {
                         const existingReactions = msg.reactions || [];
@@ -583,6 +587,7 @@ export function useChatLogic() {
                 // Real-time updates are handled by the API route
                 // No need to emit here as the API already does it
 
+                isUpdatingReactionsRef.current = true;
                 setMessages(prev => prev.map(msg => {
                     if (msg.id === messageId) {
                         const existingReactions = msg.reactions || [];
