@@ -17,19 +17,23 @@ export async function DELETE(
 
         const { groupId, memberId } = await params;
 
-        // Check if current user is admin of the group
+        // Check if current user is admin or owner of the group
         const adminCheck = await db
             .select()
             .from(chatParticipants)
             .where(and(
                 eq(chatParticipants.chatId, groupId),
-                eq(chatParticipants.userId, userId),
-                eq(chatParticipants.role, 'admin')
+                eq(chatParticipants.userId, userId)
             ))
             .limit(1);
 
         if (adminCheck.length === 0) {
-            return NextResponse.json({ error: 'Unauthorized - Admin access required' }, { status: 403 });
+            return NextResponse.json({ error: 'Unauthorized - Not a member of this group' }, { status: 403 });
+        }
+
+        const userRole = adminCheck[0].role;
+        if (userRole !== 'admin' && userRole !== 'owner') {
+            return NextResponse.json({ error: 'Unauthorized - Admin or Owner access required' }, { status: 403 });
         }
 
         // Prevent admin from removing themselves (they should use leave group instead)
