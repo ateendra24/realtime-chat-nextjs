@@ -60,6 +60,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
 
   useEffect(() => {
     fetchChats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refresh when refreshTrigger changes
@@ -67,6 +68,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     if (refreshTrigger && refreshTrigger > 0) {
       fetchChats(false); // Don't show loading when refreshing
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
 
   // Throttle real-time updates to prevent excessive API calls
@@ -91,23 +93,24 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
         }
       }, 2000 - timeSinceLastFetch);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Listen for real-time updates using Pusher
   useEffect(() => {
     if (!realtimeClient) return;
 
-    const handleNewMessage = (message: any) => {
+    const handleNewMessage = (message: unknown) => {
       console.log("ChatList received new message:", message);
       throttledRefresh();
     };
 
-    const handleChatListUpdate = (data: any) => {
+    const handleChatListUpdate = (data: unknown) => {
       console.log("ChatList received chat list update:", data);
       throttledRefresh();
     };
 
-    const handleGlobalChatListUpdate = (data: any) => {
+    const handleGlobalChatListUpdate = (data: unknown) => {
       console.log("ChatList received global chat list update:", data);
       throttledRefresh();
     };
@@ -237,6 +240,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
       return bTime - aTime;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chats, filter, debouncedSearchQuery]);
 
   return (

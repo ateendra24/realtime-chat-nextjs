@@ -52,7 +52,6 @@ export default function ChatPage() {
         handleEditMessage,
         handleDeleteMessage,
         // Search
-        searchQuery,
         setSearchQuery,
         searchResults,
         currentSearchResultIndex,

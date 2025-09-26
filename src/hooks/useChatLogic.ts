@@ -70,7 +70,6 @@ export function useChatLogic() {
     const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const scrollPositionRef = useRef<number>(0);
     const isUpdatingReactionsRef = useRef(false);
 
     // Search state
@@ -120,14 +119,14 @@ export function useChatLogic() {
         }
         // Reset the reaction flag after processing
         isUpdatingReactionsRef.current = false;
-    }, [messages]);
+    }, [messages, isLoadingOlderMessages]);
 
     // Separate effect for chat changes (always scroll to bottom)
     useEffect(() => {
         if (selectedChat && !isLoadingOlderMessages) {
             setTimeout(scrollToBottom, 50);
         }
-    }, [selectedChat]);
+    }, [selectedChat, isLoadingOlderMessages]);
 
     // Real-time message listener
     useEffect(() => {

@@ -211,7 +211,7 @@ export async function POST(
         // Insert the new message and update chat in parallel for better performance
         console.log('Inserting new message into database');
 
-        const [newMessage, _] = await Promise.all([
+        const [newMessage] = await Promise.all([
             // Insert message
             db.insert(messages)
                 .values({
