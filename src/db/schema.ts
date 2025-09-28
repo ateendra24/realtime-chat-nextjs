@@ -64,6 +64,20 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Message attachments (for images, files, etc.)
+export const messageAttachments = pgTable("message_attachments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  messageId: uuid("message_id").notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileSize: integer("file_size").notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  blobUrl: text("blob_url").notNull(), // Vercel Blob URL
+  thumbnailUrl: text("thumbnail_url"), // Optional thumbnail
+  width: integer("width"), // Image dimensions
+  height: integer("height"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Message reactions
 export const messageReactions = pgTable("message_reactions", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -139,6 +153,14 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
     relationName: "reply",
   }),
   reactions: many(messageReactions),
+  attachments: many(messageAttachments),
+}));
+
+export const messageAttachmentsRelations = relations(messageAttachments, ({ one }) => ({
+  message: one(messages, {
+    fields: [messageAttachments.messageId],
+    references: [messages.id],
+  }),
 }));
 
 export const messageReactionsRelations = relations(messageReactions, ({ one }) => ({
