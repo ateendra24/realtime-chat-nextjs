@@ -81,6 +81,7 @@ graph TB
 - ✅ User Registration with Profile Picture Upload
 - ✅ Real-time Messaging (Pusher)
 - ✅ Real-time Message Reactions (Pusher Events)
+- ✅ **Secure Image Sharing** (Upload, Compression, Access Control)
 - ✅ Direct Messages
 - ✅ Group Chats
 - ✅ Group Management (Add/Remove Members)
@@ -100,6 +101,8 @@ graph TB
 - **Authentication**: Clerk (complete auth flow with SSO callback)
 - **Real-time Communication**: Pusher (managed WebSocket service)
 - **Database**: PostgreSQL with Drizzle ORM (schema with migrations)
+- **File Storage**: Vercel Blob (secure image storage with access control)
+- **Image Processing**: Browser-based compression with emoji picker
 - **State Management**: Custom React hooks with optimistic updates
 - **Development**: Next.js with Turbopack for fast rebuilds
 - **Deployment**: Vercel-ready serverless architecture
@@ -128,6 +131,9 @@ PUSHER_CLUSTER=your_pusher_cluster
 # Public Pusher Configuration (Client-side)
 NEXT_PUBLIC_PUSHER_KEY=your_pusher_key
 NEXT_PUBLIC_PUSHER_CLUSTER=your_pusher_cluster
+
+# Vercel Blob Storage (Required for image sharing)
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
 
 # Optional: ImageKit for avatar uploads
 NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=your_imagekit_public_key
@@ -173,7 +179,14 @@ npm run dev
 
 This will start the Next.js app on [http://localhost:3000](http://localhost:3000) with real-time features powered by Pusher.
 
-### 6. Production Deployment
+### 6. Vercel Blob Storage Setup (Required for Image Sharing)
+
+1. Visit [Vercel Dashboard](https://vercel.com/dashboard)
+2. Go to your project → Storage → Create Database → Blob
+3. Copy the `BLOB_READ_WRITE_TOKEN` to your `.env.local` file
+4. The storage will be automatically configured for your deployment
+
+### 7. Production Deployment
 
 The application is ready for production deployment on Vercel:
 
@@ -213,6 +226,10 @@ src/
 │   │   │   └── direct/    # Direct chat creation
 │   │   ├── groups/        # Group management endpoints
 │   │   ├── users/         # User operations (search, sync)
+│   │   ├── upload/        # File upload endpoints
+│   │   │   └── image/     # Secure image upload with compression
+│   │   ├── images/        # Secure image serving
+│   │   │   └── [imageId]/ # Protected image access with auth
 │   │   └── realtime/      # Real-time event triggers
 │   ├── chat/              # Main chat interface
 │   │   └── page.tsx       # Chat application UI
@@ -222,9 +239,11 @@ src/
 │   └── page.tsx           # Landing page
 ├── components/            # Reusable React components
 │   ├── ui/                # shadcn/ui base components
+│   │   └── visually-hidden.tsx # Accessibility utility component
 │   ├── ChatList.tsx       # Chat sidebar with real-time updates
 │   ├── Messages.tsx       # Message display with reactions
-│   ├── MessageInput.tsx   # Message composition
+│   ├── MessageInput.tsx   # Message composition with image upload
+│   ├── ImageMessage.tsx   # Secure image display with viewer
 │   ├── ChatHeader.tsx     # Chat info and actions
 │   ├── CreateGroup.tsx    # Group creation dialog
 │   ├── UserSearch.tsx     # User discovery and selection
@@ -233,6 +252,7 @@ src/
 ├── hooks/                 # Custom React hooks
 │   ├── useChatLogic.ts    # Core chat state management
 │   ├── useRealtime.ts     # Pusher client connection
+│   ├── useImageUpload.ts  # Image compression and upload logic
 │   └── ...               # Additional utility hooks
 ├── db/                    # Database layer
 │   ├── index.ts           # Database connection setup
@@ -376,12 +396,25 @@ graph TD
 - **Responsive design** that works perfectly on desktop and mobile
 - **Theme support** with light/dark mode toggle
 
+#### Secure Image Sharing
+
+- **Upload with Compression**: Images automatically compressed before upload to reduce bandwidth
+- **Progress Indicators**: Real-time upload progress with visual feedback
+- **Drag & Drop Support**: Intuitive file selection with drag-and-drop interface
+- **Image Previews**: Thumbnail previews before sending with caption support
+- **Full-Screen Viewer**: Click to expand images with download functionality
+- **Security First**: Enterprise-grade access control with authentication and chat membership verification
+- **Real-time Updates**: Images appear instantly for all chat participants
+- **Optimistic UI**: Immediate feedback with loading states and error handling
+
 #### Technical Implementation
 
 - **Type-safe** end-to-end with TypeScript interfaces
 - **Error handling** with user-friendly fallbacks and retry mechanisms
 - **Performance optimized** with efficient database queries and minimal re-renders
 - **Pusher channel management** for targeted message delivery
+- **Secure image streaming** through authenticated API endpoints
+- **Access control** with chat membership verification for every image request
 
 ## Database Schema
 
@@ -390,11 +423,79 @@ The application uses a comprehensive PostgreSQL schema with the following key ta
 - **`users`** - User profiles with Clerk integration, avatars, and online status
 - **`chats`** - Chat containers (direct or group) with metadata
 - **`chatParticipants`** - Many-to-many relationship between users and chats
-- **`messages`** - All messages with content, timestamps, and edit/delete status
+- **`messages`** - All messages with content, timestamps, type, and edit/delete status
+- **`messageAttachments`** - Secure image attachments with metadata and blob references
 - **`reactions`** - Message reactions with emoji and user tracking
 - **`readReceipts`** - Track read status for unread count functionality
 
 All tables include proper foreign key relationships, indexes for performance, and timestamps for auditing.
+
+## 🔒 Secure Image Sharing Architecture
+
+### Security Features
+
+- **🔐 Authentication Required**: All image access requires valid user authentication
+- **👥 Chat Membership Verification**: Users can only access images from chats they belong to
+- **🚫 No Public URLs**: Direct blob URLs are never exposed to the client
+- **🌊 Server-Side Streaming**: Images are proxied through secure API endpoints
+- **🛡️ Access Control**: Automatic cleanup when users leave chats
+- **📱 Cross-Platform**: Works seamlessly across all devices and browsers
+
+### Image Upload Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as React UI
+    participant API as Upload API
+    participant VB as Vercel Blob
+    participant DB as Database
+    participant P as Pusher
+
+    U->>UI: Select image file
+    UI->>UI: Compress image (browser-side)
+    UI->>API: POST /api/upload/image
+    API->>VB: Store compressed image
+    VB-->>API: Return blob URL
+    API->>DB: Store attachment metadata + ID
+    DB-->>API: Return attachment record
+    API->>P: Broadcast image message
+    API-->>UI: Return secure attachment ID
+    UI->>UI: Display image via /api/images/[id]
+
+    Note over U,P: Image is now securely accessible only to chat members
+```
+
+### Image Viewing Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant UI as React UI
+    participant API as Image API
+    participant DB as Database
+    participant VB as Vercel Blob
+
+    U->>UI: Click to view image
+    UI->>API: GET /api/images/[attachmentId]
+    API->>API: Verify user authentication
+    API->>DB: Check chat membership
+    DB-->>API: Confirm user access
+    API->>VB: Fetch image data
+    VB-->>API: Return image buffer
+    API-->>UI: Stream image with headers
+    UI->>UI: Display secure image
+
+    Note over U,VB: Blob URL never exposed to client
+```
+
+### Key Security Benefits
+
+1. **Enterprise-Grade Access Control**: Images are protected by the same authentication system as your chat messages
+2. **Automatic Permission Management**: When users leave chats, they automatically lose access to images
+3. **No URL Leakage**: Even if someone intercepts network traffic, blob URLs are never transmitted to clients
+4. **Audit Trail**: All image access is logged and can be monitored
+5. **GDPR Compliance**: Users can be completely removed from the system with all their data
 
 ## Recent Updates & Improvements
 
@@ -410,6 +511,19 @@ All tables include proper foreign key relationships, indexes for performance, an
 - ✅ **Enhanced error handling** for undefined user data and network failures
 - ✅ **Optimized Pusher events** with targeted channel-based message delivery
 - ✅ **Improved message flow** - server handles all broadcasting to prevent race conditions
+
+### Image Sharing Features
+
+- ✅ **Secure Image Upload** - Enterprise-grade security with authentication and access control
+- ✅ **Smart Compression** - Automatic image compression to reduce bandwidth usage
+- ✅ **Real-time Image Sharing** - Images appear instantly for all chat participants
+- ✅ **Drag & Drop Interface** - Intuitive file selection with visual feedback
+- ✅ **Progress Indicators** - Real-time upload progress with loading states
+- ✅ **Image Viewer** - Full-screen image viewing with download functionality
+- ✅ **Optimistic UI** - Immediate image preview with server confirmation
+- ✅ **Caption Support** - Add captions to images before sending
+- ✅ **Accessibility** - Screen reader compatible with proper ARIA labels
+- ✅ **Mobile Optimized** - Touch-friendly interface for all devices
 
 ### Real-time Features
 
@@ -430,7 +544,7 @@ All tables include proper foreign key relationships, indexes for performance, an
 ### Potential Features (Not Currently Implemented)
 
 - [ ] **Typing indicators** - Show when users are composing messages
-- [ ] **File/image sharing** - Upload and share multimedia content
+- [x] **File/image sharing** - Upload and share multimedia content
 - [x] **Message search** - Search through chat history across all conversations
 - [ ] **Push notifications** - Browser notifications for new messages when app is minimized
 - [ ] **Message threading** - Reply to specific messages with threaded conversations
@@ -439,6 +553,7 @@ All tables include proper foreign key relationships, indexes for performance, an
 - [ ] **Message encryption** - End-to-end encryption for enhanced privacy
 - [ ] **Admin controls** - Advanced group management features
 - [ ] **User presence** - Online/offline status indicators (removed in current version)
+- [ ] **Image editing** - Basic crop, rotate, and filter capabilities before sending
 
 ### Technical Improvements
 
