@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { messages, users, messageReactions, chatParticipants, chats } from "@/db/schema";
+import { messages, users, messageReactions, messageAttachments, chatParticipants, chats } from "@/db/schema";
 import { eq, desc, sql, inArray, and, lt } from "drizzle-orm";
 import { pusher, CHANNELS, EVENTS } from "@/lib/pusher";
 
@@ -35,11 +35,12 @@ export async function GET(
             )!;
         }
 
-        // Fetch messages with pagination
+        // Fetch messages with pagination and attachments
         const chatMessages = await db
             .select({
                 id: messages.id,
                 content: messages.content,
+                type: messages.type,
                 createdAt: messages.createdAt,
                 editedAt: messages.editedAt,
                 userId: messages.userId,
@@ -47,9 +48,18 @@ export async function GET(
                 username: users.username,
                 avatarUrl: users.avatarUrl,
                 isDeleted: messages.isDeleted,
+                // Attachment fields
+                attachmentId: messageAttachments.id,
+                fileName: messageAttachments.fileName,
+                fileSize: messageAttachments.fileSize,
+                mimeType: messageAttachments.mimeType,
+                thumbnailUrl: messageAttachments.thumbnailUrl,
+                width: messageAttachments.width,
+                height: messageAttachments.height,
             })
             .from(messages)
             .innerJoin(users, eq(messages.userId, users.id))
+            .leftJoin(messageAttachments, eq(messages.id, messageAttachments.messageId))
             .where(whereCondition)
             .orderBy(desc(messages.createdAt))
             .limit(limit + 1); // Fetch one extra to check if there are more messages
@@ -121,17 +131,30 @@ export async function GET(
                 hasReacted: userMsgReactions.has(reaction.emoji),
             }));
 
+            // Build attachment object if exists
+            const attachment = msg.attachmentId ? {
+                id: msg.attachmentId,
+                fileName: msg.fileName!,
+                fileSize: msg.fileSize!,
+                mimeType: msg.mimeType!,
+                thumbnailUrl: msg.thumbnailUrl,
+                width: msg.width,
+                height: msg.height,
+            } : undefined;
+
             return {
                 id: msg.id,
                 user: msg.user || msg.username || 'Unknown User',
                 userId: msg.userId,
                 content: msg.content,
+                type: msg.type || 'text',
                 createdAt: msg.createdAt,
                 updatedAt: msg.editedAt,
                 avatarUrl: msg.avatarUrl,
                 isEdited: !!msg.editedAt,
                 isDeleted: msg.isDeleted || false,
                 chatId: chatId,
+                attachment,
                 reactions: reactionsArray,
             };
         }).reverse(); // Reverse to show oldest first

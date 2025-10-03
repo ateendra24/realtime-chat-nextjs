@@ -4,13 +4,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Loader2, ChevronUp } from "lucide-react";
 import { MessageActions } from "./MessageActions";
+import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
+
+interface MessageAttachment {
+    id: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    thumbnailUrl?: string;
+    width?: number;
+    height?: number;
+}
 
 interface Message {
     id: string;
     user: string;
     userId?: string;
     content: string;
+    type?: 'text' | 'image' | 'file' | 'system';
     createdAt: Date;
     updatedAt?: Date;
     chatId?: string;
@@ -18,6 +30,7 @@ interface Message {
     isEdited?: boolean;
     isDeleted?: boolean;
     isOptimistic?: boolean; // For optimistic UI updates
+    attachment?: MessageAttachment;
     reactions?: Array<{
         id: string;
         emoji: string;
@@ -90,6 +103,17 @@ export function Messages({
     currentSearchResultIndex = 0,
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+    // Debug: Log messages to see the structure
+    React.useEffect(() => {
+        if (messages.length > 0) {
+            console.log('Messages data:', messages);
+            const imageMessages = messages.filter(m => m.type === 'image');
+            if (imageMessages.length > 0) {
+                console.log('Image messages:', imageMessages);
+            }
+        }
+    }, [messages]);
 
     React.useEffect(() => {
         if (searchResults.length > 0) {
@@ -198,25 +222,44 @@ export function Messages({
                                                 <p className="font-medium text-sm mb-1">{message.user || 'Unknown User'}</p>
                                             )}
                                             <div className={`relative w-fit ${isCurrentUser && 'ml-auto'}`}>
-                                                <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
-                                                    <p className="text-sm">
-                                                        {message.isDeleted ? (
+                                                {/* Message Content */}
+                                                {message.isDeleted ? (
+                                                    <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                                        <p className="text-sm">
                                                             <em className="text-muted-foreground/80">This message was deleted</em>
-                                                        ) : (
-                                                            message.content
+                                                        </p>
+                                                    </div>
+                                                ) : message.type === 'image' && message.attachment ? (
+                                                    <div className={`relative ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                                        <ImageMessage
+                                                            attachment={message.attachment}
+                                                            content={message.content}
+                                                            className={isCurrentUser ? 'ml-auto' : ''}
+                                                        />
+                                                        {/* Show loading indicator for optimistic messages */}
+                                                        {message.isOptimistic && (
+                                                            <div className="absolute -right-1 -top-1 bg-background rounded-full p-1">
+                                                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                            </div>
                                                         )}
-                                                        {message.isEdited && !message.isDeleted && (
-                                                            <span className="text-xs text-muted-foreground ml-2">(edited)</span>
-                                                        )}
-                                                    </p>
+                                                    </div>
+                                                ) : (
+                                                    <div className={`px-3 py-2 rounded-lg w-fit relative ${isCurrentUser ? 'bg-primary ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                                        <p className="text-sm">
+                                                            {message.content}
+                                                            {message.isEdited && (
+                                                                <span className="text-xs text-muted-foreground ml-2">(edited)</span>
+                                                            )}
+                                                        </p>
 
-                                                    {/* Show loading indicator for optimistic messages */}
-                                                    {message.isOptimistic && (
-                                                        <div className="absolute -right-1 -top-1">
-                                                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        {/* Show loading indicator for optimistic messages */}
+                                                        {message.isOptimistic && (
+                                                            <div className="absolute -right-1 -top-1">
+                                                                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
 
                                                 {/* Message Actions */}
                                                 {!message.isDeleted && (

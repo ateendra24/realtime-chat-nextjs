@@ -2,11 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
 
-interface Message {
+interface MessageAttachment {
+    id: string;
+    fileName: string;
+    fileSize: number;
+    mimeType: string;
+    thumbnailUrl?: string;
+    width?: number;
+    height?: number;
+}
+
+export interface Message {
     id: string;
     user: string;
     userId?: string;
     content: string;
+    type?: 'text' | 'image' | 'file' | 'system';
     createdAt: Date;
     updatedAt?: Date;
     chatId?: string;
@@ -14,6 +25,7 @@ interface Message {
     isEdited?: boolean;
     isDeleted?: boolean;
     isOptimistic?: boolean; // For optimistic UI updates
+    attachment?: MessageAttachment; // Single attachment for now
     reactions?: Array<{
         id: string;
         emoji: string;
@@ -757,6 +769,19 @@ export function useChatLogic() {
         }
     };
 
+    const addImageMessage = (imageMessage: Message) => {
+        // Add the image message to local state for optimistic update
+        setMessages((prev) => [...prev, imageMessage]);
+
+        // Scroll to bottom
+        setTimeout(() => {
+            scrollToBottom();
+        }, 100);
+
+        // Update chat list to show new message
+        setChatListRefresh(prev => prev + 1);
+    };
+
     return {
         // State
         messages,
@@ -792,6 +817,7 @@ export function useChatLogic() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        addImageMessage,
         // Search
         searchQuery,
         setSearchQuery,

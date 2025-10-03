@@ -14,7 +14,8 @@ import { ChatHeader } from "@/components/ChatHeader";
 import { Messages } from "@/components/Messages";
 import { MessageInput } from "@/components/MessageInput";
 import { ChatDialogs } from "@/components/ChatDialogs";
-import { useChatLogic } from "@/hooks/useChatLogic";
+import { useChatLogic, type Message } from "@/hooks/useChatLogic";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function ChatPage() {
     const {
@@ -51,6 +52,7 @@ export default function ChatPage() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        addImageMessage,
         // Search
         setSearchQuery,
         searchResults,
@@ -58,6 +60,12 @@ export default function ChatPage() {
         handleNextSearchResult,
         handlePrevSearchResult,
     } = useChatLogic();
+
+    const handleImageSent = (imageMessage: Message) => {
+        // Add the image message immediately to the sender's view (optimistic update)
+        console.log('Image message sent:', imageMessage);
+        addImageMessage(imageMessage);
+    };
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -133,6 +141,7 @@ export default function ChatPage() {
                         setInput={setInput}
                         onSendMessage={sendMessage}
                         onKeyPress={handleKeyPress}
+                        onImageSent={handleImageSent}
                     />
                 </SidebarInset>
 
@@ -145,6 +154,7 @@ export default function ChatPage() {
                     onGroupCreated={handleGroupCreated}
                 />
             </div>
+            <Toaster />
         </SidebarProvider>
     );
 }
