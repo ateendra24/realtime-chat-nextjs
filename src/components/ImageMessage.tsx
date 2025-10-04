@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Download, Expand } from "lucide-react";
-import Image from 'next/image';
 
 interface MessageAttachment {
     id: string;
@@ -100,7 +99,7 @@ export function ImageMessage({ attachment, content, className = "" }: ImageMessa
                         </div>
                     )}
 
-                    <Image
+                    <img
                         src={`/api/images/${attachment.id}`}
                         alt={attachment.fileName}
                         className={`max-w-full h-auto rounded-lg transition-opacity ${imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -145,7 +144,7 @@ export function ImageMessage({ attachment, content, className = "" }: ImageMessa
                         <DialogTitle>Image Viewer - {attachment.fileName}</DialogTitle>
                     </VisuallyHidden>
                     <div className="relative">
-                        <Image
+                        <img
                             src={`/api/images/${attachment.id}`}
                             alt={attachment.fileName}
                             className="w-full h-auto max-h-[80vh] object-contain"
