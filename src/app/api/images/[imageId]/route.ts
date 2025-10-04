@@ -6,7 +6,7 @@ import { eq, and, isNull } from 'drizzle-orm';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { imageId: string } }
+    { params }: { params: Promise<{ imageId: string }> }
 ) {
     try {
         const { userId } = await auth();
@@ -15,7 +15,7 @@ export async function GET(
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { imageId } = params;
+        const { imageId } = await params;
 
         // Get the attachment with message and chat info
         const attachment = await db.select({
