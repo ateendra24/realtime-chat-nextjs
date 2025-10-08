@@ -107,15 +107,37 @@ class PusherRealtimeClient implements RealtimeClient {
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
         forceTLS: true,
         enabledTransports: ['ws', 'wss'],
+        // Production-optimized settings for Vercel
+        activityTimeout: 30000, // Detect dead connections after 30s
+        pongTimeout: 10000, // Wait 10s for pong response
+        unavailableTimeout: 5000, // Try reconnecting after 5s if unavailable
+        // Enable automatic reconnection with exponential backoff
+        disableStats: false, // Keep stats for debugging
       });
 
       this.pusher.connection.bind('connected', () => {
         console.log('✅ Connected to Pusher successfully');
         this.isConnected = true;
+        
+        // Rejoin current chat if we were in one (handles reconnections)
+        if (this.currentChatId) {
+          console.log('🔄 Rejoining chat after reconnection:', this.currentChatId);
+          this.joinChat(this.currentChatId);
+        }
       });
 
       this.pusher.connection.bind('disconnected', () => {
         console.log('❌ Disconnected from Pusher');
+        this.isConnected = false;
+      });
+
+      this.pusher.connection.bind('unavailable', () => {
+        console.warn('⚠️ Pusher connection unavailable, will retry...');
+        this.isConnected = false;
+      });
+
+      this.pusher.connection.bind('failed', () => {
+        console.error('❌ Pusher connection failed permanently');
         this.isConnected = false;
       });
 
@@ -126,6 +148,11 @@ class PusherRealtimeClient implements RealtimeClient {
 
       this.pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
         console.log('🔄 Pusher state change:', states.previous, '->', states.current);
+        
+        // Handle reconnection scenarios
+        if (states.current === 'connected' && states.previous === 'unavailable') {
+          console.log('✅ Reconnected to Pusher after being unavailable');
+        }
       });
 
     } catch (error) {

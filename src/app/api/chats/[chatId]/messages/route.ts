@@ -293,13 +293,14 @@ export async function POST(
             reactions: [],
         };
 
-        // Broadcast message using Pusher (run in background for faster response)
-        const pusherBroadcast = async () => {
-            try {
-                console.log("Emitting Pusher events for message in chat:", chatId);
+        // Broadcast message using Pusher - MUST await in serverless to prevent dropped messages
+        try {
+            console.log("Emitting Pusher events for message in chat:", chatId);
 
-                // Run all Pusher events in parallel for maximum speed
-                await Promise.all([
+            // Await Pusher broadcasts to ensure delivery before function terminates (critical for Vercel)
+            // Use Promise.race with timeout to prevent hanging
+            await Promise.race([
+                Promise.all([
                     // Emit message to chat channel
                     pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
 
@@ -316,17 +317,18 @@ export async function POST(
                         chatId,
                         messageId: newMessage.id,
                     })
-                ]);
+                ]),
+                // Timeout after 3 seconds to prevent hanging (Pusher usually responds in < 500ms)
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
+                )
+            ]);
 
-                console.log("✅ Pusher events emitted successfully");
-            } catch (pusherError) {
-                console.error("❌ Error emitting Pusher events:", pusherError);
-                // Don't fail the request if Pusher fails
-            }
-        };
-
-        // Start Pusher broadcast but don't wait for it (fire and forget for speed)
-        pusherBroadcast();
+            console.log("✅ Pusher events emitted successfully");
+        } catch (pusherError) {
+            console.error("❌ Error emitting Pusher events:", pusherError);
+            // Don't fail the request if Pusher fails, but log for monitoring
+        }
 
         // Return response immediately without waiting for Pusher
         return NextResponse.json({

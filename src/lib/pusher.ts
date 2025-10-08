@@ -1,6 +1,6 @@
 import Pusher from 'pusher';
 
-// Server-side Pusher instance
+// Server-side Pusher instance with production-optimized settings
 export const pusher = new Pusher({
   appId: process.env.PUSHER_APP_ID!,
   key: process.env.PUSHER_KEY!,
@@ -26,5 +26,29 @@ export const EVENTS = {
   user_online: 'user-online',
   user_offline: 'user-offline',
 } as const;
+
+/**
+ * Broadcast Pusher event with timeout protection for serverless environments
+ * Critical for Vercel to prevent dropped messages when function terminates
+ */
+export async function broadcastWithTimeout(
+  channel: string | string[],
+  event: string,
+  data: unknown,
+  timeoutMs: number = 3000
+): Promise<void> {
+  try {
+    await Promise.race([
+      pusher.trigger(channel, event, data),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Pusher broadcast timeout')), timeoutMs)
+      ),
+    ]);
+    console.log(`✅ Pusher event '${event}' broadcasted successfully`);
+  } catch (error) {
+    console.error(`❌ Failed to broadcast Pusher event '${event}':`, error);
+    throw error; // Re-throw to let caller handle
+  }
+}
 
 export default pusher;
