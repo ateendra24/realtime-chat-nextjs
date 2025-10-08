@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { messages } from '@/db/schema';
+import { messages, messageAttachments } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { del } from '@vercel/blob';
 
 // PUT /api/messages/[messageId] - Edit message
 export async function PUT(
@@ -81,6 +82,25 @@ export async function DELETE(
 
         if (message.length === 0) {
             return NextResponse.json({ error: 'Message not found or unauthorized' }, { status: 404 });
+        }
+
+        // Check if message has image attachments and delete them from Vercel Blob
+        const attachments = await db
+            .select()
+            .from(messageAttachments)
+            .where(eq(messageAttachments.messageId, messageId));
+
+        // Delete images from Vercel Blob
+        if (attachments.length > 0) {
+            const deletePromises = attachments.map(attachment =>
+                del(attachment.blobUrl).catch(error => {
+                    console.error(`Failed to delete blob ${attachment.blobUrl}:`, error);
+                    // Continue even if blob deletion fails
+                })
+            );
+
+            await Promise.all(deletePromises);
+            console.log(`✅ Deleted ${attachments.length} image(s) from Vercel Blob`);
         }
 
         // Soft delete the message

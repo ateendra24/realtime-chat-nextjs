@@ -319,7 +319,7 @@ export async function POST(
                     })
                 ]),
                 // Timeout after 3 seconds to prevent hanging (Pusher usually responds in < 500ms)
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                     setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
                 )
             ]);

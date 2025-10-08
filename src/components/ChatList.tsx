@@ -405,7 +405,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                             {chat.lastMessage?.createdAt ?
                               moment(chat.lastMessage?.createdAt).format('l') === moment().format('l') ?
                                 (moment(chat?.lastMessage?.createdAt).format('LT')) :
-                                moment(chat?.lastMessage?.createdAt).format('l') : moment(chat?.createdAt).format('l')}
+                                moment(chat?.lastMessage?.createdAt).format('ll') : moment(chat?.createdAt).format('l')}
 
                           </span>
                         </div>

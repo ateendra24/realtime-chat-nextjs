@@ -118,7 +118,7 @@ class PusherRealtimeClient implements RealtimeClient {
       this.pusher.connection.bind('connected', () => {
         console.log('✅ Connected to Pusher successfully');
         this.isConnected = true;
-        
+
         // Rejoin current chat if we were in one (handles reconnections)
         if (this.currentChatId) {
           console.log('🔄 Rejoining chat after reconnection:', this.currentChatId);
@@ -148,7 +148,7 @@ class PusherRealtimeClient implements RealtimeClient {
 
       this.pusher.connection.bind('state_change', (states: { previous: string; current: string }) => {
         console.log('🔄 Pusher state change:', states.previous, '->', states.current);
-        
+
         // Handle reconnection scenarios
         if (states.current === 'connected' && states.previous === 'unavailable') {
           console.log('✅ Reconnected to Pusher after being unavailable');
