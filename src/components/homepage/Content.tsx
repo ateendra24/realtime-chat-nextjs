@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 function Content() {
     return (
-        <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12 flex items-center justify-center">
+        <main className="flex-1 px-4 sm:px-6 py-10 sm:py-8 flex items-center justify-center min-h-[calc(100dvh-70px)] pb-24 md:pb-0">
             <div className="max-w-7xl mx-auto w-full">
                 {/* Hero Section */}
                 <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">

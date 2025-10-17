@@ -1,5 +1,6 @@
 import Navbar from '@/components/homepage/Navbar'
 import Content from '@/components/homepage/Content'
+import Footer from '@/components/homepage/Footer'
 
 function page() {
 
@@ -11,6 +12,9 @@ function page() {
 
       {/* Main Content */}
       <Content />
+
+      {/* Footer */}
+      <Footer />
 
     </div>
   )
