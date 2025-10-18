@@ -66,7 +66,7 @@ function Content() {
                     </div>
 
                     {/* Right Side - Video Showcase */}
-                    <div className="relative">
+                    <div className="relative py-3 order-first md:order-last">
                         {/* Decorative Elements */}
                         <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent rounded-3xl blur-3xl" />
                         <div className="absolute -inset-2 bg-gradient-to-br from-primary/5 to-transparent rounded-2xl" />
