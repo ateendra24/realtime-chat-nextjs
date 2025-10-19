@@ -104,7 +104,7 @@ export async function encryptMessage(
 
   return {
     encryptedContent: arrayBufferToBase64(encryptedContent),
-    iv: arrayBufferToBase64(iv),
+    iv: arrayBufferToBase64(iv.buffer),
     algorithm: SYMMETRIC_ALGORITHM,
   };
 }
@@ -175,7 +175,7 @@ export async function encryptFile(
 
   return {
     encryptedContent: arrayBufferToBase64(encryptedContent),
-    iv: arrayBufferToBase64(iv),
+    iv: arrayBufferToBase64(iv.buffer),
     algorithm: SYMMETRIC_ALGORITHM,
   };
 }
