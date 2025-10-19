@@ -149,8 +149,8 @@ export async function clearAllKeys(): Promise<void> {
     const userKeysStore = transaction.objectStore(USER_KEYS_STORE);
     const chatKeysStore = transaction.objectStore(CHAT_KEYS_STORE);
     
-    const clearUserKeys = userKeysStore.clear();
-    const clearChatKeys = chatKeysStore.clear();
+    userKeysStore.clear();
+    chatKeysStore.clear();
 
     transaction.onerror = () => reject(transaction.error);
     transaction.oncomplete = () => resolve();
