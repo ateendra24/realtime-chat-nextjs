@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
 import { SearchMessages } from './SearchMessages';
+import { EncryptionStatus } from './EncryptionStatus';
 
 interface Chat {
     id: string;
@@ -93,9 +94,12 @@ export function ChatHeader({
 
                 <div className="flex items-center space-x-2">
                     {selectedChat && (
-                        <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
-                            <Search className="h-5 w-5" />
-                        </Button>
+                        <>
+                            <EncryptionStatus chatId={selectedChat.id} />
+                            <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
+                                <Search className="h-5 w-5" />
+                            </Button>
+                        </>
                     )}
                     {selectedChat?.type === 'group' && (
                         <Button variant="ghost" size="icon" onClick={() => setIsGroupInfoOpen(true)}>

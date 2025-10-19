@@ -25,6 +25,8 @@ export interface Message {
     isEdited?: boolean;
     isDeleted?: boolean;
     isOptimistic?: boolean; // For optimistic UI updates
+    isEncrypted?: boolean; // Whether the message is encrypted
+    encryptionIv?: string | null; // Initialization vector for decryption
     attachment?: MessageAttachment; // Single attachment for now
     reactions?: Array<{
         id: string;

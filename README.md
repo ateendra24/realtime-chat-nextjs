@@ -82,6 +82,7 @@ graph TB
 - ✅ Real-time Messaging (Pusher)
 - ✅ Real-time Message Reactions (Pusher Events)
 - ✅ **Secure Image Sharing** (Upload, Compression, Access Control)
+- ✅ **End-to-End Encryption (E2E)** - Messages encrypted on device before sending
 - ✅ Direct Messages
 - ✅ Group Chats
 - ✅ Group Management (Add/Remove Members)
@@ -430,6 +431,38 @@ The application uses a comprehensive PostgreSQL schema with the following key ta
 
 All tables include proper foreign key relationships, indexes for performance, and timestamps for auditing.
 
+## 🔐 End-to-End Encryption (E2E)
+
+### Encryption Features
+
+This application implements **true end-to-end encryption** for all messages:
+
+- **🔒 Client-Side Encryption**: Messages encrypted on device before sending
+- **🔑 Zero-Knowledge Server**: Server never sees unencrypted content
+- **🛡️ AES-GCM Encryption**: Industry-standard 256-bit encryption
+- **🔐 RSA Key Exchange**: Secure 2048-bit key distribution
+- **💾 Local Key Storage**: Keys stored securely in browser IndexedDB
+- **🚀 Automatic Setup**: Encryption initialized automatically on first login
+
+### How It Works
+
+1. **Key Generation**: Each user gets a unique RSA keypair on first login
+2. **Chat Keys**: Each chat has its own AES symmetric key
+3. **Encryption**: Messages encrypted with chat key before sending
+4. **Storage**: Only encrypted content stored on server
+5. **Decryption**: Messages decrypted only on recipient's device
+6. **Key Exchange**: Chat keys shared securely using RSA encryption
+
+### Security Guarantees
+
+✅ **Server Cannot Read Messages**: All encryption happens client-side
+✅ **Forward Secrecy**: Each chat has unique encryption keys
+✅ **No Plaintext Storage**: Database only contains encrypted content
+✅ **Secure Key Exchange**: Keys exchanged using asymmetric encryption
+✅ **Visual Indicators**: Lock icons show encryption status
+
+For detailed encryption documentation, see [ENCRYPTION.md](./ENCRYPTION.md)
+
 ## 🔒 Secure Image Sharing Architecture
 
 ### Security Features
@@ -550,7 +583,7 @@ sequenceDiagram
 - [ ] **Message threading** - Reply to specific messages with threaded conversations
 - [ ] **Voice messages** - Record and send audio messages
 - [ ] **Video calls** - Integrate WebRTC for video/audio calling
-- [ ] **Message encryption** - End-to-end encryption for enhanced privacy
+- [x] **Message encryption** - End-to-end encryption for enhanced privacy (see [ENCRYPTION.md](./ENCRYPTION.md))
 - [ ] **Admin controls** - Advanced group management features
 - [ ] **User presence** - Online/offline status indicators (removed in current version)
 - [ ] **Image editing** - Basic crop, rotate, and filter capabilities before sending
