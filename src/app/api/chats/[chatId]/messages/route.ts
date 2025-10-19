@@ -48,6 +48,9 @@ export async function GET(
                 username: users.username,
                 avatarUrl: users.avatarUrl,
                 isDeleted: messages.isDeleted,
+                // Encryption fields
+                isEncrypted: messages.isEncrypted,
+                encryptionIv: messages.encryptionIv,
                 // Attachment fields
                 attachmentId: messageAttachments.id,
                 fileName: messageAttachments.fileName,
@@ -153,6 +156,8 @@ export async function GET(
                 avatarUrl: msg.avatarUrl,
                 isEdited: !!msg.editedAt,
                 isDeleted: msg.isDeleted || false,
+                isEncrypted: msg.isEncrypted || false,
+                encryptionIv: msg.encryptionIv,
                 chatId: chatId,
                 attachment,
                 reactions: reactionsArray,
@@ -189,7 +194,7 @@ export async function POST(
         }
 
         const { chatId } = await params;
-        const { content } = await req.json();
+        const { content, isEncrypted, encryptionIv } = await req.json();
 
         // console.log('Message creation request:', { userId, chatId, content });
 
@@ -241,6 +246,8 @@ export async function POST(
                     chatId,
                     userId,
                     content: content.trim(),
+                    isEncrypted: isEncrypted || false,
+                    encryptionIv: encryptionIv || null,
                     createdAt: new Date(),
                 })
                 .returning()
@@ -274,6 +281,8 @@ export async function POST(
             avatarUrl: userInfo.avatarUrl,
             isEdited: false,
             isDeleted: false,
+            isEncrypted: newMessage.isEncrypted || false,
+            encryptionIv: newMessage.encryptionIv,
             chatId: newMessage.chatId,
             reactions: [],
         };
@@ -289,6 +298,8 @@ export async function POST(
             avatarUrl: userInfo.avatarUrl,
             isEdited: false,
             isDeleted: false,
+            isEncrypted: newMessage.isEncrypted || false,
+            encryptionIv: newMessage.encryptionIv,
             chatId: newMessage.chatId,
             reactions: [],
         };

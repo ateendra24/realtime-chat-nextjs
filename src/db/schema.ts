@@ -61,6 +61,9 @@ export const messages = pgTable("messages", {
   editedAt: timestamp("edited_at"),
   isDeleted: boolean("is_deleted").default(false),
   metadata: text("metadata"),
+  // Encryption fields
+  isEncrypted: boolean("is_encrypted").default(false),
+  encryptionIv: text("encryption_iv"), // Initialization vector for decryption
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -98,13 +101,33 @@ export const userSessions = pgTable("user_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User encryption keys (stores public keys for key exchange)
+export const userEncryptionKeys = pgTable("user_encryption_keys", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  publicKey: text("public_key").notNull(), // RSA public key in base64
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Chat encryption metadata (tracks encryption status and key exchange)
+export const chatEncryption = pgTable("chat_encryption", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  chatId: uuid("chat_id").notNull().unique().references(() => chats.id, { onDelete: 'cascade' }),
+  isEncrypted: boolean("is_encrypted").default(true),
+  encryptionEnabled: boolean("encryption_enabled").default(true),
+  createdBy: text("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   chatParticipants: many(chatParticipants),
   messages: many(messages),
   createdChats: many(chats),
   messageReactions: many(messageReactions),
   sessions: many(userSessions),
+  encryptionKey: one(userEncryptionKeys),
 }));
 
 export const chatsRelations = relations(chats, ({ many, one }) => ({
@@ -118,6 +141,7 @@ export const chatsRelations = relations(chats, ({ many, one }) => ({
     fields: [chats.lastMessageId],
     references: [messages.id],
   }),
+  encryption: one(chatEncryption),
 }));
 
 export const chatParticipantsRelations = relations(chatParticipants, ({ one }) => ({
@@ -177,6 +201,24 @@ export const messageReactionsRelations = relations(messageReactions, ({ one }) =
 export const userSessionsRelations = relations(userSessions, ({ one }) => ({
   user: one(users, {
     fields: [userSessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userEncryptionKeysRelations = relations(userEncryptionKeys, ({ one }) => ({
+  user: one(users, {
+    fields: [userEncryptionKeys.userId],
+    references: [users.id],
+  }),
+}));
+
+export const chatEncryptionRelations = relations(chatEncryption, ({ one }) => ({
+  chat: one(chats, {
+    fields: [chatEncryption.chatId],
+    references: [chats.id],
+  }),
+  creator: one(users, {
+    fields: [chatEncryption.createdBy],
     references: [users.id],
   }),
 }));
