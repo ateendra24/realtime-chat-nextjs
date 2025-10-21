@@ -393,44 +393,53 @@ export function useChatLogic() {
     };
 
     const handleChatSelect = async (chat: Chat) => {
-        setMessages([]);
+        // Early UI update for instant feedback
         setShowCreateGroup(false);
+        setSelectedChat(chat);
+
+        // Clear old messages and show loading immediately
+        setMessages([]);
         setMessagesLoading(true);
+
         // Reset pagination state
         setHasMoreMessages(false);
         setNextCursor(null);
         setLoadingMoreMessages(false);
         setIsLoadingOlderMessages(false);
 
-        // For group chats, fetch members data first
-        let chatWithMembers = chat;
-        if (chat.type === 'group' && chat.id) {
-            try {
-                console.log('Fetching members for group:', chat.id);
-                const membersResponse = await fetch(`/api/groups/${chat.id}/members`);
-                if (membersResponse.ok) {
-                    const membersData = await membersResponse.json();
-                    console.log('Members data received:', membersData);
-                    chatWithMembers = {
-                        ...chat,
-                        members: membersData.members,
-                        memberCount: membersData.members?.length || membersData.memberCount
-                    };
-                } else {
-                    console.error("Failed to load group members:", membersResponse.statusText);
-                }
-            } catch (membersError) {
-                console.error("Error loading group members:", membersError);
-            }
-        }
-
-        // Set the chat with members data
-        setSelectedChat(chatWithMembers);
-
         if (chat.id) {
             try {
-                // Fetch messages
-                const response = await fetch(`/api/chats/${chat.id}/messages?limit=50`);
+                // Fetch messages and members in parallel for group chats
+                const fetchPromises = [
+                    fetch(`/api/chats/${chat.id}/messages?limit=30`, {
+                        signal: AbortSignal.timeout(10000), // 10 second timeout
+                    })
+                ];
+
+                // Add members fetch for group chats
+                let membersPromise: Promise<Response> | null = null;
+                if (chat.type === 'group') {
+                    membersPromise = fetch(`/api/groups/${chat.id}/members`);
+                    fetchPromises.push(membersPromise);
+                }
+
+                // Execute all fetches in parallel
+                const results = await Promise.all(fetchPromises);
+                const response = results[0];
+
+                // Handle members data if it's a group chat
+                if (chat.type === 'group' && results[1]) {
+                    const membersResponse = results[1];
+                    if (membersResponse.ok) {
+                        const membersData = await membersResponse.json();
+                        setSelectedChat({
+                            ...chat,
+                            members: membersData.members,
+                            memberCount: membersData.members?.length || membersData.memberCount
+                        });
+                    }
+                }
+
                 if (response.ok) {
                     const result = await response.json();
                     // Handle both old format (array) and new format (object with pagination)
@@ -446,11 +455,11 @@ export function useChatLogic() {
                     setMessagesLoading(false);
                     scrollToBottom();
 
-                    // Mark messages as read if there are messages
+                    // Mark messages as read if there are messages (non-blocking)
                     const messageArray = Array.isArray(result) ? result : result.messages || [];
                     if (messageArray.length > 0) {
                         const lastMessage = messageArray[messageArray.length - 1];
-                        await markLastMessageAsRead(chat.id, lastMessage.id);
+                        markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
                     }
                 } else {
                     console.error("Failed to load messages:", response.statusText);
@@ -505,7 +514,9 @@ export function useChatLogic() {
         console.log('Before load - ScrollTop:', beforeScrollTop, 'ScrollHeight:', beforeScrollHeight);
 
         try {
-            const response = await fetch(`/api/chats/${selectedChat.id}/messages?limit=50&before=${nextCursor}`);
+            const response = await fetch(`/api/chats/${selectedChat.id}/messages?limit=30&before=${nextCursor}`, {
+                signal: AbortSignal.timeout(10000), // 10 second timeout
+            });
             if (response.ok) {
                 const result = await response.json();
 

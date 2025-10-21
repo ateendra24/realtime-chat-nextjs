@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, pgEnum, integer, varchar, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, pgEnum, integer, varchar, unique, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const chatTypeEnum = pgEnum('chat_type', ['direct', 'group']);
@@ -62,7 +62,11 @@ export const messages = pgTable("messages", {
   isDeleted: boolean("is_deleted").default(false),
   metadata: text("metadata"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  chatIdIdx: index("messages_chat_id_idx").on(table.chatId),
+  createdAtIdx: index("messages_created_at_idx").on(table.createdAt),
+  chatIdCreatedAtIdx: index("messages_chat_id_created_at_idx").on(table.chatId, table.createdAt),
+}));
 
 // Message attachments (for images, files, etc.)
 export const messageAttachments = pgTable("message_attachments", {
@@ -87,6 +91,7 @@ export const messageReactions = pgTable("message_reactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   messageUserEmojiUnique: unique().on(table.messageId, table.userId, table.emoji),
+  messageIdIdx: index("message_reactions_message_id_idx").on(table.messageId),
 }));
 
 // User sessions for real-time presence (Pusher-based)

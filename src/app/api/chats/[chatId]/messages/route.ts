@@ -17,7 +17,7 @@ export async function GET(
 
         const { chatId } = await params;
         const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '50');
+        const limit = parseInt(searchParams.get('limit') || '30'); // Reduced from 50 to 30 for faster initial load
         const before = searchParams.get('before'); // Cursor for pagination (message ID or timestamp)
 
         if (!chatId) {
@@ -35,7 +35,7 @@ export async function GET(
             )!;
         }
 
-        // Fetch messages with pagination and attachments
+        // Fetch messages first (fastest query - uses composite index)
         const chatMessages = await db
             .select({
                 id: messages.id,
@@ -44,11 +44,7 @@ export async function GET(
                 createdAt: messages.createdAt,
                 editedAt: messages.editedAt,
                 userId: messages.userId,
-                user: users.fullName,
-                username: users.username,
-                avatarUrl: users.avatarUrl,
                 isDeleted: messages.isDeleted,
-                // Attachment fields
                 attachmentId: messageAttachments.id,
                 fileName: messageAttachments.fileName,
                 fileSize: messageAttachments.fileSize,
@@ -58,7 +54,6 @@ export async function GET(
                 height: messageAttachments.height,
             })
             .from(messages)
-            .innerJoin(users, eq(messages.userId, users.id))
             .leftJoin(messageAttachments, eq(messages.id, messageAttachments.messageId))
             .where(whereCondition)
             .orderBy(desc(messages.createdAt))
@@ -68,17 +63,56 @@ export async function GET(
         const hasMoreMessages = chatMessages.length > limit;
         const messagesToReturn = hasMoreMessages ? chatMessages.slice(0, limit) : chatMessages;
 
-        // Fetch reactions for all messages
+        // Get unique user IDs for batch fetch
+        const uniqueUserIds = [...new Set(messagesToReturn.map(msg => msg.userId))];
         const messageIds = messagesToReturn.map(msg => msg.id);
-        const reactions = messageIds.length > 0 ? await db
-            .select({
-                messageId: messageReactions.messageId,
-                emoji: messageReactions.emoji,
-                count: sql<number>`count(*)`.as('count'),
-            })
-            .from(messageReactions)
-            .where(inArray(messageReactions.messageId, messageIds))
-            .groupBy(messageReactions.messageId, messageReactions.emoji) : [];
+
+        // Fetch user data, reactions, and user reactions in parallel
+        const [userData, reactions, userReactions] = await Promise.all([
+            // Fetch users in batch (much faster than JOIN)
+            uniqueUserIds.length > 0 ? db
+                .select({
+                    id: users.id,
+                    fullName: users.fullName,
+                    username: users.username,
+                    avatarUrl: users.avatarUrl,
+                })
+                .from(users)
+                .where(inArray(users.id, uniqueUserIds))
+                : Promise.resolve([]),
+            // Fetch all reactions
+            messageIds.length > 0 ? db
+                .select({
+                    messageId: messageReactions.messageId,
+                    emoji: messageReactions.emoji,
+                    count: sql<number>`count(*)`.as('count'),
+                })
+                .from(messageReactions)
+                .where(inArray(messageReactions.messageId, messageIds))
+                .groupBy(messageReactions.messageId, messageReactions.emoji)
+                : Promise.resolve([]),
+
+            // Fetch user's reactions
+            messageIds.length > 0 ? db
+                .select({
+                    messageId: messageReactions.messageId,
+                    emoji: messageReactions.emoji,
+                })
+                .from(messageReactions)
+                .where(
+                    and(
+                        inArray(messageReactions.messageId, messageIds),
+                        eq(messageReactions.userId, userId)
+                    )
+                )
+                : Promise.resolve([])
+        ]);
+
+        // Create user lookup map for O(1) access
+        const userMap = userData.reduce((acc, user) => {
+            acc[user.id] = user;
+            return acc;
+        }, {} as Record<string, typeof userData[0]>);
 
         // Group reactions by message ID and emoji
         const reactionsByMessage = reactions.reduce((acc, reaction) => {
@@ -96,20 +130,7 @@ export async function GET(
             return acc;
         }, {} as Record<string, Record<string, { emoji: string; count: number; userIds: string[] }>>);
 
-        // Get user's reactions to determine hasReacted
-        const userReactions = messageIds.length > 0 ? await db
-            .select({
-                messageId: messageReactions.messageId,
-                emoji: messageReactions.emoji,
-            })
-            .from(messageReactions)
-            .where(
-                and(
-                    inArray(messageReactions.messageId, messageIds),
-                    eq(messageReactions.userId, userId)
-                )
-            ) : [];
-
+        // Map user reactions
         const userReactionMap = userReactions.reduce((acc, reaction) => {
             if (!acc[reaction.messageId]) {
                 acc[reaction.messageId] = new Set();
@@ -118,20 +139,22 @@ export async function GET(
             return acc;
         }, {} as Record<string, Set<string>>);
 
-        // Transform the messages to match the expected format
+        // Transform the messages to match the expected format (optimized)
         const formattedMessages = messagesToReturn.map(msg => {
-            const msgReactions = reactionsByMessage[msg.id] || {};
-            const userMsgReactions = userReactionMap[msg.id] || new Set();
+            const user = userMap[msg.userId];
+            const msgReactions = reactionsByMessage[msg.id];
+            const userMsgReactions = userReactionMap[msg.id];
 
-            const reactionsArray = Object.values(msgReactions).map(reaction => ({
+            // Build reactions array only if reactions exist
+            const reactionsArray = msgReactions ? Object.values(msgReactions).map(reaction => ({
                 id: `${msg.id}-${reaction.emoji}`,
                 emoji: reaction.emoji,
                 count: reaction.count,
                 userIds: reaction.userIds,
-                hasReacted: userMsgReactions.has(reaction.emoji),
-            }));
+                hasReacted: userMsgReactions?.has(reaction.emoji) || false,
+            })) : [];
 
-            // Build attachment object if exists
+            // Build attachment object only if exists
             const attachment = msg.attachmentId ? {
                 id: msg.attachmentId,
                 fileName: msg.fileName!,
@@ -144,13 +167,13 @@ export async function GET(
 
             return {
                 id: msg.id,
-                user: msg.user || msg.username || 'Unknown User',
+                user: user?.fullName || user?.username || 'Unknown User',
                 userId: msg.userId,
                 content: msg.content,
                 type: msg.type || 'text',
                 createdAt: msg.createdAt,
                 updatedAt: msg.editedAt,
-                avatarUrl: msg.avatarUrl,
+                avatarUrl: user?.avatarUrl,
                 isEdited: !!msg.editedAt,
                 isDeleted: msg.isDeleted || false,
                 chatId: chatId,
@@ -159,11 +182,16 @@ export async function GET(
             };
         }).reverse(); // Reverse to show oldest first
 
-        // Return messages with pagination info
+        // Return messages with pagination info and caching headers
         return NextResponse.json({
             messages: formattedMessages,
             hasMoreMessages,
             nextCursor: hasMoreMessages ? messagesToReturn[messagesToReturn.length - 1]?.createdAt.toISOString() : null
+        }, {
+            headers: {
+                'Cache-Control': 'private, no-cache, must-revalidate',
+                'CDN-Cache-Control': 'no-store',
+            }
         });
     } catch (error) {
         console.error("Error fetching messages:", error);
