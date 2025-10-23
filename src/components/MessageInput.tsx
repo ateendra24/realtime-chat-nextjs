@@ -213,7 +213,7 @@ export function MessageInput({
             )}
 
             {/* Input Row */}
-            <div className="relative flex items-center p-3 mb-2 border-t space-x-2 rounded-full">
+            <div className="relative flex items-center p-3 mb-2 border-t space-x-2 backdrop-blur-sm bg-background/95">
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -228,12 +228,12 @@ export function MessageInput({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className='rounded-full cursor-pointer'
+                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     title="Upload image"
                 >
-                    <Image className="h-4 w-4" />
+                    <Image className="h-5 w-5" />
                 </Button>
 
                 {/* Emoji Picker Button */}
@@ -241,11 +241,11 @@ export function MessageInput({
                     ref={buttonRef}
                     variant="ghost"
                     size="sm"
-                    className='rounded-full cursor-pointer'
+                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     disabled={uploading}
                 >
-                    <Smile className="h-4 w-4" />
+                    <Smile className="h-5 w-5" />
                 </Button>
 
                 {/* Emoji Picker */}
@@ -266,7 +266,7 @@ export function MessageInput({
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 rounded-full"
+                    className="flex-1 rounded-full bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
                     disabled={!selectedChat || uploading}
                 />
 
@@ -274,12 +274,12 @@ export function MessageInput({
                 <Button
                     onClick={handleSend}
                     disabled={(!input.trim() && !selectedImage) || !selectedChat || uploading}
-                    className='rounded-full w-16'
+                    className='rounded-full w-10 h-10 p-0 hover:scale-110 transition-all disabled:hover:scale-100'
                 >
                     {uploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                        <Send className="h-4 w-4" />
+                        <Send className="h-5 w-5" />
                     )}
                 </Button>
             </div>

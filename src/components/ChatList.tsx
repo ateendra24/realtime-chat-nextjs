@@ -375,7 +375,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           ) : (
             <>
               {/* Chat List */}
-              <div className="p-2 space-y-1 overflow-y-auto h-[66vh] scrollbar-thin">
+              <div className="p-2 space-y-1 overflow-y-auto h-[66vh]">
                 {filteredAndSortedChats.map((chat) => (
                   <AnimatedListItem key={chat.id}>
                     <div

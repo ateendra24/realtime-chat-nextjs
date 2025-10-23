@@ -116,29 +116,47 @@ export function useChatLogic() {
         }
     };
 
-    // Function to scroll to bottom
-    const scrollToBottom = () => {
+    // Function to scroll to bottom with optional smooth behavior
+    const scrollToBottom = (smooth = false) => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView();
+            messagesEndRef.current.scrollIntoView({
+                behavior: smooth ? 'smooth' : 'auto',
+                block: 'end'
+            });
         }
     };
 
+    // Track previous messages and chat to detect changes
+    const prevMessagesLengthRef = useRef(0);
+    const prevChatIdRef = useRef<string | null>(null);
+
+    // Separate effect for chat changes (instant scroll to bottom, no animation)
+    useEffect(() => {
+        if (selectedChat) {
+            const chatChanged = prevChatIdRef.current !== selectedChat.id;
+            if (chatChanged) {
+                prevChatIdRef.current = selectedChat.id;
+                // Instant scroll (no smooth) when opening a new chat
+                setTimeout(() => scrollToBottom(false), 50);
+            }
+        }
+    }, [selectedChat]);
+
     // Auto-scroll to bottom when NEW messages are added (not when loading older ones or updating reactions)
     useEffect(() => {
-        if (!isLoadingOlderMessages && !isUpdatingReactionsRef.current) {
-            // Small delay to ensure DOM is updated
-            setTimeout(scrollToBottom, 10);
+        const currentLength = messages.length;
+        const prevLength = prevMessagesLengthRef.current;
+
+        // Only scroll smoothly if a new message was added (not when loading older messages)
+        if (!isLoadingOlderMessages && !isUpdatingReactionsRef.current && currentLength > prevLength) {
+            // Small delay to ensure DOM is updated, smooth scroll for new messages
+            setTimeout(() => scrollToBottom(true), 10);
         }
+
+        prevMessagesLengthRef.current = currentLength;
         // Reset the reaction flag after processing
         isUpdatingReactionsRef.current = false;
     }, [messages, isLoadingOlderMessages]);
-
-    // Separate effect for chat changes (always scroll to bottom)
-    useEffect(() => {
-        if (selectedChat && !isLoadingOlderMessages) {
-            setTimeout(scrollToBottom, 50);
-        }
-    }, [selectedChat, isLoadingOlderMessages]);
 
     // Real-time message listener
     useEffect(() => {
@@ -165,7 +183,8 @@ export function useChatLogic() {
 
                     console.log("Adding new message from other user:", msg);
                     const newMessages = [...prev, msg];
-                    scrollToBottom(); // Remove setTimeout delay for immediate scrolling
+                    // Smooth scroll for incoming messages from others
+                    setTimeout(() => scrollToBottom(true), 10);
                     return newMessages;
                 });
 
@@ -327,8 +346,8 @@ export function useChatLogic() {
             setInput("");
             setMessages((prev) => [...prev, optimisticMessage]);
 
-            // Scroll to bottom immediately for the sender's message
-            setTimeout(scrollToBottom, 0);
+            // Scroll to bottom smoothly for the sender's message
+            setTimeout(() => scrollToBottom(true), 0);
 
             try {
                 const response = await fetch(`/api/chats/${chatId}/messages`, {
