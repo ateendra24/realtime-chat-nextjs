@@ -208,31 +208,23 @@ export async function POST(
     { params }: { params: Promise<{ chatId: string }> }
 ) {
     try {
-        console.log('POST /api/chats/[chatId]/messages - Starting');
-
         const { userId } = await auth();
         if (!userId) {
-            console.log('Unauthorized - no userId');
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const { chatId } = await params;
         const { content } = await req.json();
 
-        // console.log('Message creation request:', { userId, chatId, content });
-
         if (!content || !content.trim()) {
-            console.log('Error: Message content is required');
             return NextResponse.json({ error: "Message content is required" }, { status: 400 });
         }
 
         if (!chatId) {
-            console.log('Error: Chat ID is required');
             return NextResponse.json({ error: "Chat ID is required" }, { status: 400 });
         }
 
         // Get user information and verify participant status in a single query
-        console.log('Verifying user is participant and getting user info:', { chatId, userId });
 
         const participantAndUser = await db
             .select({
@@ -252,15 +244,12 @@ export async function POST(
             .limit(1);
 
         if (participantAndUser.length === 0) {
-            console.log('Error: User is not a participant of this chat or user not found');
             return NextResponse.json({ error: "Unauthorized - Not a participant of this chat" }, { status: 403 });
         }
 
         const userInfo = participantAndUser[0];
-        console.log('User verified as participant:', userInfo);
 
         // Insert the new message and update chat in parallel for better performance
-        console.log('Inserting new message into database');
 
         const [newMessage] = await Promise.all([
             // Insert message
@@ -323,8 +312,6 @@ export async function POST(
 
         // Broadcast message using Pusher - MUST await in serverless to prevent dropped messages
         try {
-            console.log("Emitting Pusher events for message in chat:", chatId);
-
             // Await Pusher broadcasts to ensure delivery before function terminates (critical for Vercel)
             // Use Promise.race with timeout to prevent hanging
             await Promise.race([
@@ -351,11 +338,9 @@ export async function POST(
                     setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
                 )
             ]);
-
-            console.log("✅ Pusher events emitted successfully");
         } catch (pusherError) {
-            console.error("❌ Error emitting Pusher events:", pusherError);
-            // Don't fail the request if Pusher fails, but log for monitoring
+            console.error("Failed to emit Pusher events:", pusherError);
+            // Don't fail the request if Pusher fails
         }
 
         // Return response immediately without waiting for Pusher

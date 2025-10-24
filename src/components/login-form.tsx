@@ -53,8 +53,6 @@ export function LoginForm({
                 await setActive({ session: signInAttempt.createdSessionId });
                 router.push("/chat");
             } else {
-                // If the status is not complete, check what's missing or wrong
-                console.log("Sign in attempt:", signInAttempt);
                 setError("Invalid email or password");
             }
         } catch (err: unknown) {

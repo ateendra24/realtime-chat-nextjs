@@ -5,7 +5,7 @@ const isProtectedRoute = createRouteMatcher(['/chat']);
 const publicRoutes = createRouteMatcher(['/', '/sign-in', '/sign-up']);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth(); // ✅ Await the auth function
+  const { userId } = await auth(); // Await the auth function
 
   if (isProtectedRoute(req)) {
     if (!userId) {

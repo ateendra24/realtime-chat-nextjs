@@ -104,14 +104,6 @@ export function GroupInfoSheet({
     const isCurrentUserOwner = selectedChat.isOwner || selectedChat.role === 'owner';
     const members = selectedChat.members || [];
 
-    // Debug logging
-    console.log('GroupInfoSheet Debug:', {
-        selectedChat,
-        members,
-        memberCount: selectedChat.memberCount,
-        membersLength: members.length
-    });
-
     const handleEditStart = () => {
         setEditName(selectedChat.displayName || selectedChat.name || '');
         setEditDescription(selectedChat.description || '');

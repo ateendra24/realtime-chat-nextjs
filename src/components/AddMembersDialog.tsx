@@ -100,9 +100,6 @@ export function AddMembersDialog({
             });
 
             if (response.ok) {
-                const data = await response.json();
-                console.log('Members added successfully:', data);
-
                 // Reset state
                 setSelectedUsers(new Set());
                 setSearchQuery('');

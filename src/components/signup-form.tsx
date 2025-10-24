@@ -92,7 +92,6 @@ export function SignUpForm({
                 await setActive({ session: completeSignUp.createdSessionId });
                 router.push("/chat");
             } else {
-                console.log("Sign up verification:", completeSignUp);
                 setError("Verification failed. Please try again.");
             }
         } catch (err: unknown) {

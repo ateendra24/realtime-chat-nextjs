@@ -44,9 +44,8 @@ export async function broadcastWithTimeout(
         setTimeout(() => reject(new Error('Pusher broadcast timeout')), timeoutMs)
       ),
     ]);
-    console.log(`✅ Pusher event '${event}' broadcasted successfully`);
   } catch (error) {
-    console.error(`❌ Failed to broadcast Pusher event '${event}':`, error);
+    console.error(`Failed to broadcast Pusher event '${event}':`, error);
     throw error; // Re-throw to let caller handle
   }
 }
