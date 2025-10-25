@@ -1,70 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
-
-interface MessageAttachment {
-    id: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-    thumbnailUrl?: string;
-    width?: number;
-    height?: number;
-}
-
-export interface Message {
-    id: string;
-    user: string;
-    userId?: string;
-    content: string;
-    type?: 'text' | 'image' | 'file' | 'system';
-    createdAt: Date;
-    updatedAt?: Date;
-    chatId?: string;
-    avatarUrl?: string;
-    isEdited?: boolean;
-    isDeleted?: boolean;
-    isOptimistic?: boolean; // For optimistic UI updates
-    attachment?: MessageAttachment; // Single attachment for now
-    reactions?: Array<{
-        id: string;
-        emoji: string;
-        count: number;
-        userIds: string[];
-        hasReacted: boolean;
-    }>;
-}
-
-interface GroupMember {
-    id: string;
-    name: string;
-    username?: string;
-    avatarUrl?: string;
-    isAdmin?: boolean;
-    role?: 'owner' | 'admin' | 'member';
-    isOwner?: boolean;
-    isOnline?: boolean;
-    joinedAt?: string;
-}
-
-interface Chat {
-    id: string;
-    name?: string;
-    description?: string;
-    type: 'direct' | 'group';
-    avatarUrl?: string;
-    createdAt: string;
-    updatedAt: string;
-    isAdmin?: boolean;
-    role?: 'owner' | 'admin' | 'member';
-    isOwner?: boolean;
-    displayName?: string;
-    username?: string;
-    isOnline?: boolean;
-    unreadCount?: number;
-    members?: GroupMember[];
-    memberCount?: number;
-}
+import type { Message, Chat, GroupMember, User } from '@/types/global';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();
@@ -163,25 +100,16 @@ export function useChatLogic() {
         if (!realtimeClient) return;
 
         realtimeClient.onMessage((msg: Message) => {
-            console.log("useChatLogic received message:", msg);
-            console.log("Current user ID:", user?.id);
-            console.log("Message sender ID:", msg.userId);
-            console.log("Selected chat ID:", selectedChat?.id);
-            console.log("Message chat ID:", msg.chatId);
-
             // Only show messages from other users (not the current user)
             // The current user's messages are already added optimistically when sending
             if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
-                console.log("Adding message from other user to current chat");
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
                     if (messageExists) {
-                        console.log("Message already exists, skipping duplicate");
                         return prev;
                     }
 
-                    console.log("Adding new message from other user:", msg);
                     const newMessages = [...prev, msg];
                     // Smooth scroll for incoming messages from others
                     setTimeout(() => scrollToBottom(true), 10);
@@ -190,8 +118,6 @@ export function useChatLogic() {
 
                 // Mark the message as read since user is viewing this chat
                 markLastMessageAsRead(selectedChat.id, msg.id);
-            } else {
-                console.log("Message not for current chat, from current user, or no chat selected");
             }
         });
 
@@ -210,7 +136,6 @@ export function useChatLogic() {
             chatId: string;
             userId: string;
         }) => {
-            console.log('Received reaction update:', data);
 
             // Only update if it's for the current chat and not from the current user
             if (selectedChat && data.chatId === selectedChat.id && user && data.userId !== user.id) {
@@ -294,7 +219,6 @@ export function useChatLogic() {
                     // Join all chat rooms
                     userChats.forEach((chat: Chat) => {
                         realtimeClient.joinChat(chat.id);
-                        console.log(`Requested to join chat room: ${chat.id}`);
                     });
                 }
             } catch (error) {
@@ -309,11 +233,9 @@ export function useChatLogic() {
     useEffect(() => {
         if (!realtimeClient || !selectedChat) return;
 
-        console.log(`Requesting to join chat room: ${selectedChat.id}`);
         realtimeClient.joinChat(selectedChat.id);
 
         return () => {
-            console.log(`Requesting to leave chat room: ${selectedChat.id}`);
             realtimeClient.leaveChat(selectedChat.id);
         };
     }, [realtimeClient, selectedChat]);
@@ -362,7 +284,6 @@ export function useChatLogic() {
 
                 if (response.ok) {
                     const result = await response.json();
-                    console.log('Message saved successfully:', result);
 
                     // Replace optimistic message with real message
                     setMessages((prev) => prev.map(prevMsg =>
@@ -512,7 +433,6 @@ export function useChatLogic() {
             return;
         }
 
-        console.log('Loading more messages...');
         setLoadingMoreMessages(true);
         setIsLoadingOlderMessages(true);
 
@@ -520,7 +440,6 @@ export function useChatLogic() {
         const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') || scrollAreaRef.current;
 
         if (!scrollContainer) {
-            console.warn('Scroll container not found');
             setLoadingMoreMessages(false);
             setIsLoadingOlderMessages(false);
             return;
@@ -529,8 +448,6 @@ export function useChatLogic() {
         // Store current scroll info
         const beforeScrollHeight = scrollContainer.scrollHeight;
         const beforeScrollTop = scrollContainer.scrollTop;
-
-        console.log('Before load - ScrollTop:', beforeScrollTop, 'ScrollHeight:', beforeScrollHeight);
 
         try {
             const response = await fetch(`/api/chats/${selectedChat.id}/messages?limit=30&before=${nextCursor}`, {
@@ -545,7 +462,6 @@ export function useChatLogic() {
                     setNextCursor(null);
                 } else {
                     const newMessages = result.messages || [];
-                    console.log('Loaded', newMessages.length, 'older messages');
                     setMessages(prev => [...newMessages, ...prev]);
                     setHasMoreMessages(result.hasMoreMessages || false);
                     setNextCursor(result.nextCursor || null);
@@ -558,13 +474,10 @@ export function useChatLogic() {
                         const heightDifference = afterScrollHeight - beforeScrollHeight;
                         const newScrollTop = beforeScrollTop + heightDifference;
 
-                        console.log('After load - ScrollHeight:', afterScrollHeight, 'HeightDiff:', heightDifference, 'NewScrollTop:', newScrollTop);
-
                         scrollContainer.scrollTop = newScrollTop;
 
                         // Verify the scroll position was set correctly
                         setTimeout(() => {
-                            console.log('Final ScrollTop:', scrollContainer.scrollTop);
                             setIsLoadingOlderMessages(false);
                         }, 100);
                     });
@@ -623,7 +536,6 @@ export function useChatLogic() {
             if (response.ok) {
                 // Update the message with new reaction data
                 const updatedReaction = await response.json();
-                console.log('Updated reaction response:', updatedReaction); // Debug log
 
                 // Real-time updates are handled by the API route
                 // No need to emit here as the API already does it
@@ -663,7 +575,6 @@ export function useChatLogic() {
     const handleEditMessage = async (messageId: string) => {
         // For now, just log that editing was requested
         // In a full implementation, you'd open an edit modal or inline editor
-        console.log('Edit message:', messageId);
         // This would typically open an edit dialog or enable inline editing
     };
 
@@ -779,11 +690,9 @@ export function useChatLogic() {
         }
 
         try {
-            console.log('Refreshing members for group:', selectedChat.id);
             const membersResponse = await fetch(`/api/groups/${selectedChat.id}/members`);
             if (membersResponse.ok) {
                 const membersData = await membersResponse.json();
-                console.log('Refreshed members data:', membersData);
 
                 // Update the selected chat with new members data
                 setSelectedChat(prev => prev ? {

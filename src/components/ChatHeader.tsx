@@ -5,22 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
 import { SearchMessages } from './SearchMessages';
+import type { Chat, ChatHeaderProps } from '@/types/global';
 
-interface Chat {
-    id: string;
-    name?: string;
-    description?: string;
-    type: 'direct' | 'group';
-    avatarUrl?: string;
-    createdAt: string;
-    updatedAt: string;
-    isAdmin?: boolean;
-    displayName?: string;
-    username?: string;
-}
-
-interface ChatHeaderProps {
-    selectedChat: Chat | null;
+interface LocalChatHeaderProps extends ChatHeaderProps {
     onLeaveGroup?: (groupId: string) => void;
     onUpdateGroup?: (groupId: string, updates: { name?: string; description?: string; avatarUrl?: string | null }) => void;
     onRemoveMember?: (groupId: string, memberId: string) => void;
@@ -43,7 +30,7 @@ export function ChatHeader({
     currentSearchResultIndex,
     onNextSearchResult,
     onPrevSearchResult,
-}: ChatHeaderProps) {
+}: LocalChatHeaderProps) {
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');

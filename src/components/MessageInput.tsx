@@ -8,25 +8,9 @@ import Picker from '@emoji-mart/react'
 import { useTheme } from 'next-themes';
 import { useImageUpload, createImagePreview, revokeImagePreview } from '@/hooks/useImageUpload';
 import { toast } from 'sonner';
-import { type Message } from '@/hooks/useChatLogic';
+import type { Message, Chat, MessageInputProps } from '@/types/global';
 
-interface Chat {
-    id: string;
-    name?: string;
-    description?: string;
-    type: 'direct' | 'group';
-    avatarUrl?: string;
-    createdAt: string;
-    updatedAt: string;
-    isAdmin?: boolean;
-    displayName?: string;
-    username?: string;
-}
-
-interface MessageInputProps {
-    selectedChat: Chat | null;
-    input: string;
-    setInput: (value: string) => void;
+interface LocalMessageInputProps extends Omit<MessageInputProps, 'sendMessage'> {
     onSendMessage: () => void;
     onKeyPress: (e: React.KeyboardEvent) => void;
     onImageSent?: (message: Message) => void; // Callback for when image is sent
@@ -39,7 +23,7 @@ export function MessageInput({
     onSendMessage,
     onKeyPress,
     onImageSent
-}: MessageInputProps) {
+}: LocalMessageInputProps) {
     // Hooks must be called before any conditional returns
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);

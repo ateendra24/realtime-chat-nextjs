@@ -6,69 +6,7 @@ import { MessageSquare, Loader2, ChevronUp } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
-
-interface MessageAttachment {
-    id: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-    thumbnailUrl?: string;
-    width?: number;
-    height?: number;
-}
-
-interface Message {
-    id: string;
-    user: string;
-    userId?: string;
-    content: string;
-    type?: 'text' | 'image' | 'file' | 'system';
-    createdAt: Date;
-    updatedAt?: Date;
-    chatId?: string;
-    avatarUrl?: string;
-    isEdited?: boolean;
-    isDeleted?: boolean;
-    isOptimistic?: boolean; // For optimistic UI updates
-    attachment?: MessageAttachment;
-    reactions?: Array<{
-        id: string;
-        emoji: string;
-        count: number;
-        userIds: string[];
-        hasReacted: boolean;
-    }>;
-}
-
-interface Chat {
-    id: string;
-    name?: string;
-    description?: string;
-    type: 'direct' | 'group';
-    avatarUrl?: string;
-    createdAt: string;
-    updatedAt: string;
-    isAdmin?: boolean;
-    displayName?: string;
-    username?: string;
-}
-
-interface MessagesProps {
-    selectedChat: Chat | null;
-    messages: Message[];
-    messagesLoading: boolean;
-    currentUserId?: string;
-    messagesEndRef: React.RefObject<HTMLDivElement | null>;
-    scrollAreaRef: React.RefObject<HTMLDivElement | null>;
-    onReaction?: (messageId: string, emoji: string) => void;
-    onEditMessage?: (messageId: string) => void;
-    onDeleteMessage?: (messageId: string) => void;
-    onLoadMoreMessages?: () => void;
-    hasMoreMessages?: boolean;
-    loadingMoreMessages?: boolean;
-    searchResults?: Message[];
-    currentSearchResultIndex?: number;
-}
+import type { Message, Chat, MessagesProps } from '@/types/global';
 
 // Helper function to format date separator
 const formatDateSeparator = (date: moment.Moment) => {
@@ -257,9 +195,6 @@ export function Messages({
                                             {message.reactions && message.reactions.length > 0 && (
                                                 <div className={`flex flex-wrap gap-1.5 mt-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                                                     {message.reactions.map((reaction, index) => {
-                                                        // Debug log to see reaction structure
-                                                        if (index === 0) console.log('Reaction object:', reaction);
-
                                                         return (
                                                             <div
                                                                 key={reaction?.id || `${reaction?.emoji || 'emoji'}-${reaction?.count || 0}-${index}`}

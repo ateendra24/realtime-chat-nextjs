@@ -10,35 +10,7 @@ import { Skeleton } from "./ui/skeleton";
 import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
-
-interface Chat {
-  id: string;
-  name?: string;
-  description?: string;
-  type: 'direct' | 'group';
-  avatarUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-  isAdmin?: boolean;
-  role?: 'owner' | 'admin' | 'member';
-  isOwner?: boolean;
-  displayName?: string;
-  username?: string;
-  unreadCount?: number;
-  lastMessage?: {
-    content: string;
-    createdAt: Date;
-    userName: string;
-  };
-}
-
-interface ChatListProps {
-  onChatSelect?: (chat: Chat) => void;
-  onCreateGroup?: () => void;
-  onSearchUsers?: () => void;
-  selectedChatId?: string;
-  refreshTrigger?: number;
-}
+import type { Chat, ChatListProps } from '@/types/global';
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -101,28 +73,22 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     if (!realtimeClient) return;
 
     const handleNewMessage = (message: unknown) => {
-      console.log("ChatList received new message:", message);
       throttledRefresh();
     };
 
     const handleChatListUpdate = (data: unknown) => {
-      console.log("ChatList received chat list update:", data);
       throttledRefresh();
     };
 
     const handleGlobalChatListUpdate = (data: unknown) => {
-      console.log("ChatList received global chat list update:", data);
       throttledRefresh();
     };
-
-    console.log("ChatList: Setting up real-time listeners");
 
     realtimeClient.onMessage(handleNewMessage);
     realtimeClient.onChatListUpdate(handleChatListUpdate);
     realtimeClient.onGlobalChatListUpdate(handleGlobalChatListUpdate);
 
     return () => {
-      console.log("ChatList: Cleaning up real-time listeners");
       realtimeClient.cleanup();
     };
   }, [realtimeClient, throttledRefresh]);

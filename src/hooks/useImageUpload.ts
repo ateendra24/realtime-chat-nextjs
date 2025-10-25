@@ -3,38 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import imageCompression from 'browser-image-compression';
-
-interface MessageAttachment {
-    id: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-    thumbnailUrl?: string;
-    width?: number;
-    height?: number;
-}
-
-interface UploadResult {
-    success: boolean;
-    message?: {
-        id: string;
-        chatId: string;
-        userId: string;
-        content: string;
-        type: 'image';
-        createdAt: string;
-        attachment: MessageAttachment;
-    };
-    error?: string;
-}
-
-interface UseImageUploadResult {
-    uploadImage: (file: File, chatId: string, content?: string) => Promise<UploadResult>;
-    uploading: boolean;
-    progress: number;
-    error: string | null;
-    clearError: () => void;
-}
+import type { MessageAttachment, UploadResult, UseImageUploadResult } from '@/types/global';
 
 const compressionOptions = {
     maxSizeMB: 2, // Maximum file size in MB

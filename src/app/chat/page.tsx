@@ -14,8 +14,9 @@ import { ChatHeader } from "@/components/ChatHeader";
 import { Messages } from "@/components/Messages";
 import { MessageInput } from "@/components/MessageInput";
 import { ChatDialogs } from "@/components/ChatDialogs";
-import { useChatLogic, type Message } from "@/hooks/useChatLogic";
+import { useChatLogic } from "@/hooks/useChatLogic";
 import { Toaster } from "@/components/ui/sonner";
+import type { Message } from "@/types/global";
 
 export default function ChatPage() {
     const {
@@ -63,7 +64,6 @@ export default function ChatPage() {
 
     const handleImageSent = (imageMessage: Message) => {
         // Add the image message immediately to the sender's view (optimistic update)
-        console.log('Image message sent:', imageMessage);
         addImageMessage(imageMessage);
     };
 

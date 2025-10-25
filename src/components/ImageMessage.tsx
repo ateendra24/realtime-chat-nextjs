@@ -1,36 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Download, Expand } from "lucide-react";
-
-interface MessageAttachment {
-    id: string;
-    fileName: string;
-    fileSize: number;
-    mimeType: string;
-    thumbnailUrl?: string;
-    width?: number;
-    height?: number;
-}
-
-interface ImageMessageProps {
-    attachment: MessageAttachment;
-    content?: string;
-    className?: string;
-}
+import type { ImageMessageProps } from '@/types/global';
 
 export function ImageMessage({ attachment, content, className = "" }: ImageMessageProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [imageError, setImageError] = useState(false);
-
-    // Debug: Log attachment data
-    useEffect(() => {
-        console.log('ImageMessage received attachment:', attachment);
-    }, [attachment]);
 
     const handleDownload = async () => {
         try {

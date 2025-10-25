@@ -1,5 +1,4 @@
 // Global type declarations for the chat application
-// Currently using Pusher for real-time functionality
 
 // ============================================
 // CORE ENTITIES
