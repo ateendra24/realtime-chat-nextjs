@@ -42,6 +42,21 @@ export function Messages({
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
+    // Auto-scroll to current search result
+    useEffect(() => {
+        if (searchResults.length > 0 && searchResults[currentSearchResultIndex]) {
+            const currentResultMessage = searchResults[currentSearchResultIndex];
+            const messageElement = messageRefs.current[currentResultMessage.id];
+            
+            if (messageElement) {
+                messageElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center',
+                });
+            }
+        }
+    }, [currentSearchResultIndex, searchResults]);
+
     return (
         <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
             <div className="p-4 h-full">
