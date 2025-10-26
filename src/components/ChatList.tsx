@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon } from "lucide-react";
+import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Ellipsis } from "lucide-react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
@@ -11,6 +11,7 @@ import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
 import type { Chat, ChatListProps } from '@/types/global';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -217,31 +218,35 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           <h2 className="text-lg font-semibold">Chats</h2>
           <div className="flex space-x-2">
             {theme === "light" ? (
-              <Button size="sm" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
+              <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
                 <Sun className="h-4 w-4" strokeWidth={1.5} />
               </Button>
             ) : (
-              <Button size="sm" onClick={() => setTheme("light")} className='cursor-pointer rounded-full'>
+              <Button size="icon" onClick={() => setTheme("light")} className='cursor-pointer rounded-full'>
                 <Moon className="h-4 w-4" strokeWidth={1.5} />
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onSearchUsers}
-              className="cursor-pointer rounded-full"
-            >
-              <UserPlus className="h-4 w-4" />
-              {/* <span>Search Users</span> */}
-            </Button>
-            <Button
-              size="sm"
-              onClick={onCreateGroup}
-              className="cursor-pointer rounded-full"
-            >
-              <Users className="h-4 w-4" />
-              {/* <span>New Group</span> */}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-9 w-9 p-0 rounded-full hover:bg-accent cursor-pointer data-[state=open]:bg-accent"
+                >
+                  <Ellipsis className="h-4 w-4 rotate-90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48 rounded-xl">
+                <DropdownMenuItem onClick={onSearchUsers} className="cursor-pointer rounded-lg">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  <span>Search Users</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onCreateGroup} className="cursor-pointer rounded-lg">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span>New Group</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

@@ -197,7 +197,7 @@ export function MessageInput({
             )}
 
             {/* Input Row */}
-            <div className="relative flex items-center p-3 mb-2 border-t space-x-2 backdrop-blur-sm bg-background/95">
+            <div className="relative flex items-center px-3 py-2 border rounded-4xl mb-2 space-x-2 backdrop-blur-sm bg-background/95">
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -211,7 +211,7 @@ export function MessageInput({
                 {/* Image Upload Button */}
                 <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
@@ -224,7 +224,7 @@ export function MessageInput({
                 <Button
                     ref={buttonRef}
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     disabled={uploading}
@@ -250,7 +250,7 @@ export function MessageInput({
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 rounded-full bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
+                    className="flex-1 h-10 rounded-full bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
                     disabled={!selectedChat || uploading}
                 />
 

@@ -88,8 +88,8 @@ export default function ChatPage() {
     return (
         <SidebarProvider>
             <div className="flex h-dvh w-full">
-                <Sidebar>
-                    <SidebarContent className="flex-1 overflow-hidden rounded-3xl!">
+                <Sidebar variant="floating">
+                    <SidebarContent className="flex-1 overflow-hidden">
                         <ChatList
                             onChatSelect={handleChatSelect}
                             onCreateGroup={() => setShowCreateGroup(true)}
