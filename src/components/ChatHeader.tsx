@@ -4,6 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
+import { UserProfilePopover } from "@/components/UserProfilePopover";
 import { SearchMessages } from './SearchMessages';
 import type { Chat, ChatHeaderProps } from '@/types/global';
 
@@ -54,26 +55,49 @@ export function ChatHeader({
                     <SidebarTrigger />
                     {selectedChat && (
                         <>
-                            <Avatar className="w-8 h-8">
-                                <AvatarImage
-                                    src={selectedChat.avatarUrl || undefined}
-                                    alt={selectedChat.displayName || "Chat"}
-                                />
-                                <AvatarFallback>
-                                    {selectedChat.displayName?.[0]?.toUpperCase() || 'C'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className={`${selectedChat?.type === 'group' && 'cursor-pointer'}`} onClick={handleHeaderClick}>
-                                <h2 className="font-semibold">
-                                    {selectedChat.displayName || selectedChat.name || 'Chat'}
-                                </h2>
-                                <p className="text-xs text-muted-foreground">
-                                    {selectedChat.type === 'group'
-                                        ? 'Group chat'
-                                        : 'Direct message'
-                                    }
-                                </p>
-                            </div>
+                            {selectedChat.type === 'direct' ? (
+                                <UserProfilePopover selectedChat={selectedChat}>
+                                    <div className="flex items-center space-x-3 cursor-pointer">
+                                        <Avatar className="w-8 h-8">
+                                            <AvatarImage
+                                                src={selectedChat.avatarUrl || undefined}
+                                                alt={selectedChat.displayName || "Chat"}
+                                            />
+                                            <AvatarFallback>
+                                                {selectedChat.displayName?.[0]?.toUpperCase() || 'C'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <h2 className="font-semibold">
+                                                {selectedChat.displayName || selectedChat.name || 'Chat'}
+                                            </h2>
+                                            <p className="text-xs text-muted-foreground">
+                                                Direct message
+                                            </p>
+                                        </div>
+                                    </div>
+                                </UserProfilePopover>
+                            ) : (
+                                <>
+                                    <Avatar className="w-8 h-8 cursor-pointer" onClick={handleHeaderClick}>
+                                        <AvatarImage
+                                            src={selectedChat.avatarUrl || undefined}
+                                            alt={selectedChat.displayName || "Chat"}
+                                        />
+                                        <AvatarFallback>
+                                            {selectedChat.displayName?.[0]?.toUpperCase() || 'C'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="cursor-pointer" onClick={handleHeaderClick}>
+                                        <h2 className="font-semibold">
+                                            {selectedChat.displayName || selectedChat.name || 'Chat'}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground">
+                                            Group chat
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
                 </div>
