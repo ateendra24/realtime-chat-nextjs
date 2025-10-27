@@ -19,8 +19,6 @@ export const CHANNELS = {
 export const EVENTS = {
   message: 'message',
   reaction_update: 'reaction-update',
-  typing_start: 'typing-start',
-  typing_stop: 'typing-stop',
   chat_list_update: 'chat-list-update',
   global_chat_list_update: 'global-chat-list-update',
   user_online: 'user-online',

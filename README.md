@@ -543,7 +543,6 @@ sequenceDiagram
 
 ### Potential Features (Not Currently Implemented)
 
-- [ ] **Typing indicators** - Show when users are composing messages
 - [x] **File/image sharing** - Upload and share multimedia content
 - [x] **Message search** - Search through chat history across all conversations
 - [ ] **Push notifications** - Browser notifications for new messages when app is minimized

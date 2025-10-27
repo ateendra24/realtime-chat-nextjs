@@ -148,7 +148,7 @@ export function SignUpForm({
                     </div>
 
                     {error && (
-                        <Alert variant="destructive">
+                        <Alert className="bg-destructive">
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}

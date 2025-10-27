@@ -131,15 +131,6 @@ export interface ReactionUpdateData {
 }
 
 /**
- * Typing indicator event data
- */
-export interface TypingData {
-  userId: string;
-  chatId: string;
-  userName?: string;
-}
-
-/**
  * Chat list update event data
  */
 export interface ChatListUpdateData {
@@ -182,14 +173,10 @@ export interface RealtimeClient {
   leaveChat: (chatId: string) => void;
   onMessage: (callback: (data: Message) => void) => void;
   onReactionUpdate: (callback: (data: ReactionUpdateData) => void) => void;
-  onTypingStart: (callback: (data: TypingData) => void) => void;
-  onTypingStop: (callback: (data: TypingData) => void) => void;
   onChatListUpdate: (callback: (data: ChatListUpdateData) => void) => void;
   onGlobalChatListUpdate: (callback: (data: GlobalChatListUpdateData) => void) => void;
   onUserOnline: (callback: (data: UserPresenceData) => void) => void;
   onUserOffline: (callback: (data: UserPresenceData) => void) => void;
-  emitTypingStart: (data: TypingData) => void;
-  emitTypingStop: (data: TypingData) => void;
   emitChatListUpdate: (data: ChatListUpdateData) => void;
   emitGlobalChatListUpdate: (data: GlobalChatListUpdateData) => void;
   cleanup: () => void;

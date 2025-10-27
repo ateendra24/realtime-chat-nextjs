@@ -122,7 +122,7 @@ export function LoginForm({
                     </div>
 
                     {error && (
-                        <Alert variant="destructive">
+                        <Alert className="bg-destructive">
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     )}

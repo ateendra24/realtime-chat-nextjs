@@ -5,7 +5,6 @@ import type {
   RealtimeClient,
   Message,
   ReactionUpdateData,
-  TypingData,
   ChatListUpdateData,
   GlobalChatListUpdateData,
   UserPresenceData
@@ -154,20 +153,6 @@ class PusherRealtimeClient implements RealtimeClient {
     });
   }
 
-  onTypingStart(callback: (data: TypingData) => void) {
-    if (this.currentChatId) {
-      const channel = this.channels.get(`chat-${this.currentChatId}`);
-      channel?.bind('typing-start', callback);
-    }
-  }
-
-  onTypingStop(callback: (data: TypingData) => void) {
-    if (this.currentChatId) {
-      const channel = this.channels.get(`chat-${this.currentChatId}`);
-      channel?.bind('typing-stop', callback);
-    }
-  }
-
   onChatListUpdate(callback: (data: ChatListUpdateData) => void) {
     this.chatListUpdateCallback = callback;
 
@@ -212,23 +197,6 @@ class PusherRealtimeClient implements RealtimeClient {
     }
     const channel = this.channels.get('global-updates');
     channel?.bind('user-offline', callback);
-  }
-
-  // For Pusher, these are HTTP requests to trigger events
-  emitTypingStart(data: TypingData) {
-    fetch('/api/pusher/typing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start', ...data })
-    });
-  }
-
-  emitTypingStop(data: TypingData) {
-    fetch('/api/pusher/typing', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'stop', ...data })
-    });
   }
 
   emitChatListUpdate(data: ChatListUpdateData) {
