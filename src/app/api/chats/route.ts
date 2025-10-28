@@ -73,6 +73,9 @@ export async function GET() {
         createdAt: chats.createdAt,
         updatedAt: chats.updatedAt,
         lastMessageAt: chats.lastMessageAt,
+        lastMessageContent: chats.lastMessageContent,
+        lastMessageUserId: chats.lastMessageUserId,
+        lastMessageUserName: chats.lastMessageUserName,
         messageCount: chats.messageCount,
         isActive: chats.isActive,
         role: chatParticipants.role,
@@ -87,28 +90,9 @@ export async function GET() {
       ))
       .orderBy(desc(chats.lastMessageAt));
 
-    // For each chat, get the last message and participant info
+    // For each chat, get participant info and calculate unread count
     const chatsWithDetails = await Promise.all(
       userChats.map(async (chat) => {
-        // Get last message
-        const lastMessage = await db
-          .select({
-            id: messages.id,
-            content: messages.content,
-            createdAt: messages.createdAt,
-            userId: messages.userId,
-            userName: users.username,
-            isDeleted: messages.isDeleted,
-          })
-          .from(messages)
-          .innerJoin(users, eq(messages.userId, users.id))
-          .where(and(
-            eq(messages.chatId, chat.id),
-            eq(messages.isDeleted, false)
-          ))
-          .orderBy(desc(messages.createdAt))
-          .limit(1);
-
         // Calculate unread messages count
         let unreadCount = 0;
         if (chat.lastReadMessageId) {
@@ -122,7 +106,7 @@ export async function GET() {
               sql`${messages.createdAt} > (SELECT created_at FROM messages WHERE id = ${chat.lastReadMessageId})`
             ));
           unreadCount = unreadMessages[0]?.count || 0;
-        } else {
+        } else if ((chat.messageCount || 0) > 0) {
           // If no last read message, count all messages
           const allMessages = await db
             .select({ count: sql<number>`count(*)`.as('count') })
@@ -176,11 +160,11 @@ export async function GET() {
           isAdmin: chat.role === 'admin' || chat.role === 'owner', // For backward compatibility
           isOwner: chat.role === 'owner',
           unreadCount,
-          lastMessage: lastMessage.length > 0 ? {
-            id: lastMessage[0].id,
-            content: lastMessage[0].content,
-            createdAt: lastMessage[0].createdAt,
-            userName: lastMessage[0].userName,
+          lastMessage: chat.lastMessageContent ? {
+            content: chat.lastMessageContent,
+            createdAt: chat.lastMessageAt,
+            userName: chat.lastMessageUserName,
+            userId: chat.lastMessageUserId,
           } : null,
         };
       })

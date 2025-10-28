@@ -249,36 +249,27 @@ export async function POST(
 
         const userInfo = participantAndUser[0];
 
-        // Insert the new message and update chat in parallel for better performance
+        // Insert the new message
+        const [newMessage] = await db.insert(messages)
+            .values({
+                chatId,
+                userId,
+                content: content.trim(),
+                createdAt: new Date(),
+            })
+            .returning();
 
-        const [newMessage] = await Promise.all([
-            // Insert message
-            db.insert(messages)
-                .values({
-                    chatId,
-                    userId,
-                    content: content.trim(),
-                    createdAt: new Date(),
-                })
-                .returning()
-                .then(result => result[0]),
-
-            // Update chat metadata in parallel
-            db.update(chats)
-                .set({
-                    lastMessageAt: new Date(),
-                    messageCount: sql`${chats.messageCount} + 1`,
-                    updatedAt: new Date(),
-                })
-                .where(eq(chats.id, chatId))
-        ]);
-
-        console.log('Message inserted and chat updated:', newMessage);
-
-        // We'll update the lastMessageId separately after we have the message ID
-        await db
-            .update(chats)
-            .set({ lastMessageId: newMessage.id })
+        // Update chat metadata with cached last message data
+        await db.update(chats)
+            .set({
+                lastMessageId: newMessage.id,
+                lastMessageAt: newMessage.createdAt,
+                lastMessageContent: newMessage.content,
+                lastMessageUserId: userId,
+                lastMessageUserName: userInfo.fullName || userInfo.username || 'Unknown User',
+                messageCount: sql`${chats.messageCount} + 1`,
+                updatedAt: new Date(),
+            })
             .where(eq(chats.id, chatId));
 
         const responseMessage = {

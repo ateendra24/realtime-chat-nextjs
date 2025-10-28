@@ -212,7 +212,7 @@ export function MessageInput({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
+                    className='rounded-full cursor-pointer hover:bg-primary/10'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     title="Upload image"
@@ -225,7 +225,7 @@ export function MessageInput({
                     ref={buttonRef}
                     variant="ghost"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
+                    className='rounded-full cursor-pointer hover:bg-primary/10'
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     disabled={uploading}
                 >

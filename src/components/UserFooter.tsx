@@ -268,10 +268,10 @@ function UserFooter() {
                             <ChevronDown className="h-4 w-4 text-muted-foreground mr-2" />
                         </div>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
+                    <DropdownMenuContent className="w-56 rounded-2xl bg-card">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className='cursor-pointer' onClick={() => {
+                        <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                             setShowProfileEdit(true);
                             // Reset form data when opening
                             setEditedName(user?.fullName || '');
@@ -283,7 +283,7 @@ function UserFooter() {
                             <span>Edit Profile</span>
                         </DropdownMenuItem>
                         {hasPassword && (
-                            <DropdownMenuItem className='cursor-pointer' onClick={() => {
+                            <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                                 setShowPasswordChange(true);
                                 setPasswordData({
                                     currentPassword: '',
@@ -301,7 +301,7 @@ function UserFooter() {
                                 <span>Change Password</span>
                             </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem className='cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!'>
+                        <DropdownMenuItem className='cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!  rounded-xl'>
                             <LogOut className="mr-2 h-4 w-4 hover:text-destructive-foreground!" />
                             <SignOutButton>
                                 <div className="w-full text-left">

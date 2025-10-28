@@ -29,6 +29,9 @@ export const chats = pgTable("chats", {
   createdBy: text("created_by").notNull().references(() => users.id),
   lastMessageId: uuid("last_message_id"),
   lastMessageAt: timestamp("last_message_at"),
+  lastMessageContent: text("last_message_content"), // Cached last message content
+  lastMessageUserId: text("last_message_user_id").references(() => users.id), // Cached last message sender
+  lastMessageUserName: varchar("last_message_user_name", { length: 100 }), // Cached sender name
   messageCount: integer("message_count").default(0),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
