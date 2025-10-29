@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { siteConfig } from "@/config/siteConfig";
 
 export function LoginForm({
     className,
@@ -109,10 +110,7 @@ export function LoginForm({
             <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="flex size-8 items-center justify-center rounded-md">
-                            <GalleryVerticalEnd className="size-6" />
-                        </div>
-                        <h1 className="text-xl font-bold">Welcome to Chat.</h1>
+                        <h1 className="text-xl font-bold">Welcome to {siteConfig.name}</h1>
                         <div className="text-center text-sm">
                             Don&apos;t have an account?{" "}
                             <Link href="/sign-up" className="underline underline-offset-4">
@@ -174,7 +172,7 @@ export function LoginForm({
                                 </Button>
                             </div>
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -195,7 +193,7 @@ export function LoginForm({
                     <Button
                         variant="outline"
                         type="button"
-                        className="w-full"
+                        className="w-full cursor-pointer"
                         onClick={handleGoogleSignIn}
                         disabled={isLoading}
                     >

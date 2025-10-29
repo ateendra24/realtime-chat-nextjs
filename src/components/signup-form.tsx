@@ -169,7 +169,7 @@ export function SignUpForm({
                                     maxLength={6}
                                 />
                             </div>
-                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                                 {isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -191,9 +191,6 @@ export function SignUpForm({
             <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="flex size-8 items-center justify-center rounded-md">
-                            <GalleryVerticalEnd className="size-6" />
-                        </div>
                         <h1 className="text-xl font-bold">Create your account</h1>
                         <div className="text-center text-sm">
                             Already have an account?{" "}
@@ -298,7 +295,7 @@ export function SignUpForm({
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -319,7 +316,7 @@ export function SignUpForm({
                     <Button
                         variant="outline"
                         type="button"
-                        className="w-full"
+                        className="w-full cursor-pointer"
                         onClick={handleGoogleSignUp}
                         disabled={isLoading}
                     >
