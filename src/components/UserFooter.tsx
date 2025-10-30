@@ -315,7 +315,7 @@ function UserFooter() {
 
             {/* Profile Edit Dialog */}
             <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>Edit Profile</DialogTitle>
                         <DialogDescription>
@@ -477,7 +477,7 @@ function UserFooter() {
 
             {/* Password Change Dialog */}
             <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px] rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Lock className="h-5 w-5" />
