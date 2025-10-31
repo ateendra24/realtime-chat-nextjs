@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Ellipsis } from "lucide-react";
+import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus } from "lucide-react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
@@ -230,10 +230,10 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
               <DropdownMenuTrigger asChild>
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="secondary"
                   className="h-9 w-9 p-0 rounded-full hover:bg-accent cursor-pointer data-[state=open]:bg-accent"
                 >
-                  <Ellipsis className="h-4 w-4 rotate-90" />
+                  <Plus className="h-4 w-4 rotate-90" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48 rounded-xl">
@@ -337,9 +337,18 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                 <Button
                   variant="link"
                   onClick={onCreateGroup}
-                  className="mt-2"
+                  className="mt-2 cursor-pointer"
                 >
                   Create your first group
+                </Button>
+              )}
+              {!debouncedSearchQuery.trim() && filter === 'all' && (
+                <Button
+                  variant="link"
+                  onClick={onSearchUsers}
+                  className="mt-2 cursor-pointer"
+                >
+                  Search for users
                 </Button>
               )}
             </div>

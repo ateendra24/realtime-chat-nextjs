@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { OAuthStrategy } from '@clerk/types'
 
 export function SignUpForm({
     className,
@@ -27,16 +28,6 @@ export function SignUpForm({
     const [pendingVerification, setPendingVerification] = useState(false);
     const [verificationCode, setVerificationCode] = useState("");
     const router = useRouter();
-
-    // Ensure CAPTCHA element exists for Clerk
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !document.getElementById('clerk-captcha')) {
-            const captchaDiv = document.createElement('div');
-            captchaDiv.id = 'clerk-captcha';
-            captchaDiv.style.display = 'none';
-            document.body.appendChild(captchaDiv);
-        }
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -107,31 +98,32 @@ export function SignUpForm({
         }
     };
 
-    const handleGoogleSignUp = async () => {
-        if (!isLoaded) {
-            return;
-        }
-
+    if (!signUp) return null
+    const signUpWith = (strategy: OAuthStrategy) => {
         setIsLoading(true);
         setError("");
 
-        try {
-            await signUp.authenticateWithRedirect({
-                strategy: "oauth_google",
-                redirectUrl: window.location.origin + "/sso-callback",
-                redirectUrlComplete: window.location.origin + "/chat",
-            });
-        } catch (err: unknown) {
-            console.error("Google sign up error:", err);
-            if (err && typeof err === 'object' && 'errors' in err) {
-                const errors = (err as { errors: Array<{ message: string }> }).errors;
-                setError(errors?.[0]?.message || "An error occurred during Google sign up");
-            } else {
-                setError("An error occurred during Google sign up");
-            }
-            setIsLoading(false);
-        }
-    };
+        return signUp
+            .authenticateWithRedirect({
+                strategy,
+                redirectUrl: '/sign-up/sso-callback',
+                redirectUrlComplete: '/chat',
+            })
+            .then((res) => {
+                console.log(res)
+            })
+            .catch((err: any) => {
+                console.log(err.errors)
+                console.error(err, null, 2)
+                if (err?.errors) {
+                    const errors = err.errors;
+                    setError(errors[0]?.message || "An error occurred during Google sign in");
+                } else {
+                    setError("An error occurred during Google sign in");
+                }
+                setIsLoading(false);
+            })
+    }
 
     if (pendingVerification) {
         return (
@@ -317,7 +309,7 @@ export function SignUpForm({
                         variant="outline"
                         type="button"
                         className="w-full cursor-pointer"
-                        onClick={handleGoogleSignUp}
+                        onClick={() => signUpWith('oauth_google')}
                         disabled={isLoading}
                     >
                         {isLoading ? (

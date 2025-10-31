@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { siteConfig } from "@/config/siteConfig";
+import { OAuthStrategy } from '@clerk/types'
 
 export function LoginForm({
     className,
@@ -23,16 +24,6 @@ export function LoginForm({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
-
-    // Ensure CAPTCHA element exists for Clerk
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !document.getElementById('clerk-captcha')) {
-            const captchaDiv = document.createElement('div');
-            captchaDiv.id = 'clerk-captcha';
-            captchaDiv.style.display = 'none';
-            document.body.appendChild(captchaDiv);
-        }
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,31 +70,33 @@ export function LoginForm({
         }
     };
 
-    const handleGoogleSignIn = async () => {
-        if (!isLoaded) {
-            return;
-        }
-
+    if (!signIn) return null
+    const signInWith = (strategy: OAuthStrategy) => {
         setIsLoading(true);
         setError("");
 
-        try {
-            await signIn.authenticateWithRedirect({
-                strategy: "oauth_google",
-                redirectUrl: window.location.origin + "/sso-callback",
-                redirectUrlComplete: window.location.origin + "/chat",
-            });
-        } catch (err: unknown) {
-            console.error("Google sign in error:", err);
-            if (err && typeof err === 'object' && 'errors' in err) {
-                const errors = (err as { errors: Array<{ message: string }> }).errors;
-                setError(errors?.[0]?.message || "An error occurred during Google sign in");
-            } else {
-                setError("An error occurred during Google sign in");
-            }
-            setIsLoading(false);
-        }
-    };
+        return signIn
+            .authenticateWithRedirect({
+                strategy,
+                redirectUrl: '/sign-in/sso-callback',
+                redirectUrlComplete: '/chat',
+            })
+            .then((res) => {
+                console.log(res)
+            })
+            .catch((err: any) => {
+                console.log(err.errors)
+                console.error(err, null, 2)
+                if (err?.errors) {
+                    const errors = err.errors;
+                    setError(errors[0]?.message || "An error occurred during Google sign in");
+                } else {
+                    setError("An error occurred during Google sign in");
+                }
+                setIsLoading(false);
+            })
+    }
+
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -194,7 +187,7 @@ export function LoginForm({
                         variant="outline"
                         type="button"
                         className="w-full cursor-pointer"
-                        onClick={handleGoogleSignIn}
+                        onClick={() => signInWith('oauth_google')}
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -209,6 +202,7 @@ export function LoginForm({
                         )}
                         Continue with Google
                     </Button>
+
                 </div>
             </form>
             <div className="text-muted-foreground text-center text-xs text-balance">
@@ -222,6 +216,9 @@ export function LoginForm({
                 </a>
                 .
             </div>
+
+            <div id="clerk-captcha" data-cl-theme="dark" data-cl-size="flexible" data-cl-language="es-ES" />
+
         </div>
     );
 }

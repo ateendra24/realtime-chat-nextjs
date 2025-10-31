@@ -2,19 +2,24 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 const isProtectedRoute = createRouteMatcher(['/chat']);
-const publicRoutes = createRouteMatcher(['/', '/sign-in', '/sign-up']);
+const publicRoutes = createRouteMatcher(['/', '/sign-in', '/sign-up', '/sign-in/sso-callback', '/sign-in/continue']);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth(); // Await the auth function
+  const { isAuthenticated } = await auth(); // Await the auth function
+
+  // Allow SSO callback and continue-signup to proceed without redirects
+  if (req.nextUrl.pathname === '/sso-callback' || req.nextUrl.pathname === '/continue-signup') {
+    return NextResponse.next();
+  }
 
   if (isProtectedRoute(req)) {
-    if (!userId) {
+    if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/', req.url));
     }
   }
 
   if (publicRoutes(req)) {
-    if (userId) {
+    if (isAuthenticated) {
       return NextResponse.redirect(new URL('/chat', req.url));
     }
   }
