@@ -64,7 +64,7 @@ export function MessageActions({
                     <MoreHorizontal className="h-3 w-3" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="rounded-2xl">
                 {/* Quick Reactions */}
                 <div className="flex items-center justify-around p-1 border-b">
                     {COMMON_REACTIONS.map(({ emoji, label }) => (

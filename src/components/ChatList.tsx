@@ -213,9 +213,9 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Chats</h2>
+      <div className="px-4 py-2">
+        <div className="flex items-end justify-between">
+          <h2 className="text-lg font-semibold">ChatFlow</h2>
           <div className="flex space-x-2">
             {theme === "light" ? (
               <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
@@ -249,41 +249,11 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
             </DropdownMenu>
           </div>
         </div>
-
-        {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-secondary rounded-full p-1">
-          <Button
-            variant={filter === 'all' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('all')}
-            className="flex-1 rounded-full"
-          >
-            All
-          </Button>
-          <Button
-            variant={filter === 'direct' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('direct')}
-            className="flex-1 rounded-full"
-          >
-            <MessageSquare className="h-3 w-3 mr-1" />
-            Direct
-          </Button>
-          <Button
-            variant={filter === 'group' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('group')}
-            className="flex-1 rounded-full"
-          >
-            <Users className="h-3 w-3 mr-1" />
-            Groups
-          </Button>
-        </div>
       </div>
 
       {/* Search Input */}
-      <div className="relative px-4 pt-3 pb-2">
-        <Search className="absolute w-4 h-4 left-7 top-5.5 text-muted-foreground pointer-events-none" />
+      <div className="relative px-4 py-2">
+        <Search className="absolute w-4 h-4 left-7 top-4.5 text-muted-foreground pointer-events-none" />
         <Input
           className="pl-9 pr-9 rounded-full"
           placeholder="Search chats..."
@@ -294,12 +264,42 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-6 top-5 h-6 w-6 p-0"
+            className="absolute right-6 top-3.5 h-6 w-6 p-0"
             onClick={() => setSearchQuery('')}
           >
             <X className="h-3 w-3" />
           </Button>
         )}
+      </div>
+
+      {/* {filter} */}
+      <div className="flex space-x-2 rounded-full mx-4 p-1">
+        <Button
+          variant={filter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('all')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          All
+        </Button>
+        <Button
+          variant={filter === 'direct' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('direct')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          {/* <MessageSquare className="h-3 w-3 mr-1" /> */}
+          Direct
+        </Button>
+        <Button
+          variant={filter === 'group' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('group')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          {/* <Users className="h-3 w-3 mr-1" /> */}
+          Groups
+        </Button>
       </div>
 
       {loading ? (
