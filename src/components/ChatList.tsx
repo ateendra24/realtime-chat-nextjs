@@ -392,7 +392,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                         </div>
 
                         <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground line-clamp-1">
                             {debouncedSearchQuery ? highlightText(getLastMessagePreview(chat), debouncedSearchQuery) : getLastMessagePreview(chat)}
                           </p>
                           <div className="flex items-center space-x-1">

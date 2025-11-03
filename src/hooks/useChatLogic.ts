@@ -53,18 +53,23 @@ export function useChatLogic() {
         }
     };
 
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
+
     // Function to scroll to bottom with optional smooth behavior
     const scrollToBottom = (smooth = false) => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({
-                behavior: smooth ? 'smooth' : 'auto',
-                block: 'end'
-            });
+            const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') || scrollAreaRef.current;
+            if (scrollContainer) {
+                // Directly scroll to max height for consistent behavior
+                scrollContainer.scrollTo({
+                    top: scrollContainer.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
         }
     };
 
     // Track previous messages and chat to detect changes
-    const prevMessagesLengthRef = useRef(0);
     const prevChatIdRef = useRef<string | null>(null);
 
     // Separate effect for chat changes (instant scroll to bottom, no animation)
@@ -73,27 +78,10 @@ export function useChatLogic() {
             const chatChanged = prevChatIdRef.current !== selectedChat.id;
             if (chatChanged) {
                 prevChatIdRef.current = selectedChat.id;
-                // Instant scroll (no smooth) when opening a new chat
-                setTimeout(() => scrollToBottom(false), 50);
+                setIsInitialLoad(true); // Set initial load flag for new chat
             }
         }
     }, [selectedChat]);
-
-    // Auto-scroll to bottom when NEW messages are added (not when loading older ones or updating reactions)
-    useEffect(() => {
-        const currentLength = messages.length;
-        const prevLength = prevMessagesLengthRef.current;
-
-        // Only scroll smoothly if a new message was added (not when loading older messages)
-        if (!isLoadingOlderMessages && !isUpdatingReactionsRef.current && currentLength > prevLength) {
-            // Small delay to ensure DOM is updated, smooth scroll for new messages
-            setTimeout(() => scrollToBottom(true), 10);
-        }
-
-        prevMessagesLengthRef.current = currentLength;
-        // Reset the reaction flag after processing
-        isUpdatingReactionsRef.current = false;
-    }, [messages, isLoadingOlderMessages]);
 
     // Real-time message listener
     useEffect(() => {
@@ -103,18 +91,18 @@ export function useChatLogic() {
             // Only show messages from other users (not the current user)
             // The current user's messages are already added optimistically when sending
             if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
+
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
                     if (messageExists) {
                         return prev;
                     }
-
-                    const newMessages = [...prev, msg];
-                    // Smooth scroll for incoming messages from others
-                    setTimeout(() => scrollToBottom(true), 10);
-                    return newMessages;
+                    return [...prev, msg];
                 });
+
+                // Smooth scroll for incoming messages from others with proper delay
+                setTimeout(() => scrollToBottom(true), 100);
 
                 // Mark the message as read since user is viewing this chat
                 markLastMessageAsRead(selectedChat.id, msg.id);
@@ -269,7 +257,7 @@ export function useChatLogic() {
             setMessages((prev) => [...prev, optimisticMessage]);
 
             // Scroll to bottom smoothly for the sender's message
-            setTimeout(() => scrollToBottom(true), 0);
+            setTimeout(() => scrollToBottom(true));
 
             try {
                 const response = await fetch(`/api/chats/${chatId}/messages`, {
@@ -392,25 +380,29 @@ export function useChatLogic() {
                         setHasMoreMessages(result.hasMoreMessages || false);
                         setNextCursor(result.nextCursor || null);
                     }
-                    setMessagesLoading(false);
-                    scrollToBottom();
-
-                    // Mark messages as read if there are messages (non-blocking)
-                    const messageArray = Array.isArray(result) ? result : result.messages || [];
-                    if (messageArray.length > 0) {
-                        const lastMessage = messageArray[messageArray.length - 1];
-                        markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
-                    }
                 } else {
                     console.error("Failed to load messages:", response.statusText);
-                    setMessagesLoading(false);
                 }
             } catch (error) {
                 console.error("Error loading messages:", error);
+            } finally {
                 setMessagesLoading(false);
+                // Use requestAnimationFrame to ensure the DOM is updated before scrolling and showing messages
+                requestAnimationFrame(() => {
+                    scrollToBottom(false); // Instant scroll
+                    setIsInitialLoad(false); // Reveal messages
+                });
+
+                // Mark messages as read if there are messages (non-blocking)
+                const messageArray = Array.isArray(messages) ? messages : messages || [];
+                if (messageArray.length > 0) {
+                    const lastMessage = messageArray[messageArray.length - 1];
+                    markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+                }
             }
         } else {
             setMessagesLoading(false);
+            setIsInitialLoad(false);
         }
     };
 
@@ -741,6 +733,7 @@ export function useChatLogic() {
         user,
         isSignedIn,
         isLoaded,
+        isInitialLoad,
 
         // Functions
         sendMessage,

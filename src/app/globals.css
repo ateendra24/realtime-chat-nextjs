@@ -159,6 +159,18 @@
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
 }
 
+@layer utilities {
+  .mask-to-top {
+    mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.7) 15%, rgba(0, 0, 0, 1) 20%);
+  }
+
+  .mask-to-top-bottom {
+    mask-image: linear-gradient(to top, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.1) 4%, rgba(0, 0, 0, 1) 12%),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 10%, rgba(0, 0, 0, 1) 15%);
+    mask-composite: intersect;
+  }
+}
+
 body {
   letter-spacing: var(--tracking-normal);
 }
@@ -167,7 +179,59 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Scroll Fade Effect */
+@supports (animation-timeline: scroll()) {
+  @property --ft {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  @property --fb {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 40px;
+  }
+
+  .scroll-fade-y,
+  [data-slot="scroll-area-viewport"] {
+    --ft: 0px;
+    --fb: 40px;
+    mask-image: linear-gradient(to bottom,
+        transparent 0,
+        #000 var(--ft),
+        #000 calc(100% - var(--fb)),
+        transparent 100%);
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    animation: fadeTop 1 linear both, fadeBottom 1 linear both;
+    animation-timeline: scroll(self), scroll(self);
+    animation-range: 0% 12%, 88% 100%;
+  }
+
+  @keyframes fadeTop {
+    from {
+      --ft: 0px;
+    }
+
+    to {
+      --ft: 40px;
+    }
+  }
+
+  @keyframes fadeBottom {
+    from {
+      --fb: 40px;
+    }
+
+    to {
+      --fb: 0px;
+    }
   }
 }
