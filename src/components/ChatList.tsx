@@ -12,6 +12,7 @@ import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
 import type { Chat, ChatListProps } from '@/types/global';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { ScrollArea } from "./ui/scroll-area";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -355,13 +356,13 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           ) : (
             <>
               {/* Chat List */}
-              <div className="p-2 space-y-1 overflow-y-auto h-[66vh]">
+              <ScrollArea className="p-2 h-[70vh]">
                 {filteredAndSortedChats.map((chat) => (
                   <AnimatedListItem key={chat.id}>
                     <div
                       key={chat.id}
                       onClick={() => onChatSelect?.(chat)}
-                      className={`flex items-center space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
+                      className={`flex items-center mb-1 space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
                         ? '!bg-border'
                         : chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id
                           ? 'bg-primary/10 border border-primary/30! hover:bg-primary/20'
@@ -424,7 +425,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                     </div>
                   </AnimatedListItem>
                 ))}
-              </div>
+              </ScrollArea>
             </>
           )}
         </div>
