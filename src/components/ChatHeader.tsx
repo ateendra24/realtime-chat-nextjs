@@ -50,7 +50,7 @@ export function ChatHeader({
 
     return (
         <>
-            <div className="flex items-center justify-between px-3 py-2 border rounded-4xl mt-2 relative">
+            <div className="flex items-center justify-between px-3 py-2 absolute top-0 left-0 w-full z-10 ">
                 <div className="flex items-center space-x-3">
                     <SidebarTrigger />
                     {selectedChat && (

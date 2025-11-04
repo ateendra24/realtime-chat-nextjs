@@ -30,7 +30,7 @@ export function SearchMessages({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
         >
-            <div className="w-1/3 p-2 border-b border-r border-l rounded-b-xl shadow bg-background/60 backdrop-blur-sm absolute top-[65.5px] right-5 z-10">
+            <div className="w-72 sm:w-96 p-2 border rounded-xl shadow bg-background/60 backdrop-blur-sm absolute top-14 right-5 z-10">
                 <div className="flex items-center space-x-2">
                     <Input
                         type="text"

@@ -104,7 +104,7 @@ export default function ChatPage() {
                     </SidebarFooter>
                 </Sidebar>
 
-                <SidebarInset className="flex-1 bg-transparent! relative">
+                <SidebarInset className="flex-1 bg-transparent! relative md:my-2 md:border rounded-3xl">
                     <ChatHeader
                         selectedChat={selectedChat}
                         onLeaveGroup={handleLeaveGroup}
