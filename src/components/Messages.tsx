@@ -7,6 +7,7 @@ import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
 import type { Message, Chat, MessagesProps } from '@/types/global';
+import { ProgressiveBlur } from './ui/progressive-blur';
 
 // Helper function to format date separator
 const formatDateSeparator = (date: moment.Moment) => {
@@ -58,7 +59,7 @@ export function Messages({
     }, [currentSearchResultIndex, searchResults]);
 
     return (
-        <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative mask-to-top-bottom backdrop-blur-xl ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
+        <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative mask-to-top-bottom backdrop-blur-md ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
             <div className="p-4 pt-20 pb-24 h-full">
                 {!selectedChat ? (
                     <div className="h-[85vh] flex flex-col items-center justify-center text-center text-muted-foreground py-8">
@@ -243,6 +244,8 @@ export function Messages({
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />
             </div>
+            <ProgressiveBlur height="10%" position="bottom" />
+            <ProgressiveBlur height="10%" position="top" />
         </ScrollArea>
     );
 }
