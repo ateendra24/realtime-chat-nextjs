@@ -55,11 +55,6 @@ export function useImageUpload(): UseImageUploadResult {
                 setProgress(20);
                 try {
                     processedFile = await imageCompression(file, compressionOptions);
-                    console.log('Image compressed:', {
-                        originalSize: file.size,
-                        compressedSize: processedFile.size,
-                        compressionRatio: ((file.size - processedFile.size) / file.size * 100).toFixed(1) + '%'
-                    });
                 } catch (compressionError) {
                     console.warn('Image compression failed, using original:', compressionError);
                     // Continue with original file if compression fails

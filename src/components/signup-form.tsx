@@ -109,15 +109,11 @@ export function SignUpForm({
                 redirectUrl: '/sign-up/sso-callback',
                 redirectUrlComplete: '/chat',
             })
-            .then((res) => {
-                console.log(res)
-            })
-            .catch((err: any) => {
-                console.log(err.errors)
-                console.error(err, null, 2)
-                if (err?.errors) {
-                    const errors = err.errors;
-                    setError(errors[0]?.message || "An error occurred during Google sign in");
+            .catch((err) => {
+                console.error('SSO authentication error:', err);
+                const error = err as { errors?: Array<{ message: string }> };
+                if (error?.errors) {
+                    setError(error.errors[0]?.message || "An error occurred during Google sign in");
                 } else {
                     setError("An error occurred during Google sign in");
                 }
