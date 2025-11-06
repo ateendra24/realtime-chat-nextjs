@@ -51,8 +51,6 @@ export async function PATCH(
 
         const group = updatedGroup[0];
 
-        console.log(`Admin ${userId} updated group ${groupId}`);
-
         // Return updated group data in the format expected by the frontend
         const responseData = {
             id: group.id,

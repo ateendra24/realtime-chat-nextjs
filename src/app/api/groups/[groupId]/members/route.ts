@@ -17,51 +17,55 @@ export async function GET(
 
         const { groupId } = await params;
 
-        // Verify the chat exists and is a group chat
-        const chat = await db
-            .select()
-            .from(chats)
-            .where(and(
-                eq(chats.id, groupId),
-                eq(chats.type, 'group')
-            ))
-            .limit(1);
+        // OPTIMIZED: Combine verification and data fetching in ONE query
+        // Check if group exists, user is member, and fetch all members in parallel
+        const [chatCheck, membersData] = await Promise.all([
+            // Verify chat exists, is a group, and user is a member
+            db
+                .select({
+                    chatId: chats.id,
+                    isMember: chatParticipants.userId
+                })
+                .from(chats)
+                .leftJoin(
+                    chatParticipants,
+                    and(
+                        eq(chatParticipants.chatId, chats.id),
+                        eq(chatParticipants.userId, userId)
+                    )
+                )
+                .where(and(
+                    eq(chats.id, groupId),
+                    eq(chats.type, 'group')
+                ))
+                .limit(1),
 
-        if (chat.length === 0) {
+            // Fetch all members data (will use even if auth fails, but query is fast)
+            db
+                .select({
+                    id: users.id,
+                    name: users.fullName,
+                    username: users.username,
+                    avatarUrl: users.avatarUrl,
+                    role: chatParticipants.role,
+                    joinedAt: chatParticipants.joinedAt,
+                    isOnline: users.isOnline,
+                    lastSeen: users.lastSeen,
+                })
+                .from(chatParticipants)
+                .innerJoin(users, eq(chatParticipants.userId, users.id))
+                .where(eq(chatParticipants.chatId, groupId))
+                .orderBy(chatParticipants.role, chatParticipants.joinedAt)
+        ]);
+
+        // Validate after parallel fetch
+        if (chatCheck.length === 0) {
             return NextResponse.json({ error: 'Group not found' }, { status: 404 });
         }
 
-        // Verify the current user is a member of this group
-        const userMembership = await db
-            .select()
-            .from(chatParticipants)
-            .where(and(
-                eq(chatParticipants.chatId, groupId),
-                eq(chatParticipants.userId, userId)
-            ))
-            .limit(1);
-
-        if (userMembership.length === 0) {
+        if (!chatCheck[0].isMember) {
             return NextResponse.json({ error: 'Unauthorized - Not a member of this group' }, { status: 403 });
         }
-
-        // Fetch all group members with their user details
-        const membersData = await db
-            .select({
-                id: users.id,
-                name: users.fullName,
-                username: users.username,
-                avatarUrl: users.avatarUrl,
-                role: chatParticipants.role,
-                joinedAt: chatParticipants.joinedAt,
-                email: users.email,
-                isOnline: users.isOnline,
-                lastSeen: users.lastSeen,
-            })
-            .from(chatParticipants)
-            .innerJoin(users, eq(chatParticipants.userId, users.id))
-            .where(eq(chatParticipants.chatId, groupId))
-            .orderBy(chatParticipants.role, chatParticipants.joinedAt);
 
         // Transform the data to match the expected format
         const members = membersData.map(member => ({
@@ -70,18 +74,20 @@ export async function GET(
             username: member.username,
             avatarUrl: member.avatarUrl || '',
             role: member.role,
-            isAdmin: member.role === 'admin' || member.role === 'owner', // For backward compatibility
+            isAdmin: member.role === 'admin' || member.role === 'owner',
             isOwner: member.role === 'owner',
             joinedAt: member.joinedAt?.toISOString(),
             isOnline: member.isOnline || false,
             lastSeen: member.lastSeen?.toISOString(),
         }));
 
-        console.log(`API: Fetched ${members.length} real members for group ${groupId}`);
-
         return NextResponse.json({
             members,
             memberCount: members.length
+        }, {
+            headers: {
+                'Cache-Control': 'private, max-age=10', // Cache for 10 seconds
+            }
         });
 
     } catch (error) {

@@ -71,10 +71,11 @@ export default function ContinueSignInPage() {
             } else if (res?.status === "missing_requirements") {
                 setError("Please fill in all required fields");
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Continue sign-in error:", err);
-            if (err?.errors?.[0]?.message) {
-                setError(err.errors[0].message);
+            const error = err as { errors?: Array<{ message: string }> };
+            if (error?.errors?.[0]?.message) {
+                setError(error.errors[0].message);
             } else {
                 setError("An error occurred. Please try again.");
             }

@@ -63,8 +63,6 @@ export async function DELETE(
                 eq(chatParticipants.userId, memberId)
             ));
 
-        console.log(`Admin ${userId} removed member ${memberId} from group ${groupId}`);
-
         return NextResponse.json({
             success: true,
             message: 'Member removed successfully'

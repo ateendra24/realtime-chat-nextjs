@@ -210,9 +210,9 @@ export function MessageInput({
 
                 {/* Image Upload Button */}
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10'
+                    className='rounded-full cursor-pointer bg-input/30! w-10 h-10'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     title="Upload image"
@@ -223,9 +223,9 @@ export function MessageInput({
                 {/* Emoji Picker Button */}
                 <Button
                     ref={buttonRef}
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10'
+                    className='rounded-full cursor-pointer bg-input/30! w-10 h-10'
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     disabled={uploading}
                 >
@@ -250,7 +250,7 @@ export function MessageInput({
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 h-10 rounded-full bg-transparent! border-none focus-visible:ring-0 transition-all shadow-none"
+                    className="flex-1 h-10 rounded-full bg focus-visible:ring-0 transition-all shadow-none border-secondary-foreground/10"
                     disabled={!selectedChat || uploading}
                 />
 

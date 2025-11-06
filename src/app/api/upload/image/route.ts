@@ -124,12 +124,6 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-            console.log('Broadcasting message via Pusher:', {
-                channel: CHANNELS.chat(chatId),
-                event: EVENTS.message,
-                data: messageToSend
-            });
-
             await Promise.race([
                 Promise.all([
                     // Emit message to chat channel
@@ -154,7 +148,6 @@ export async function POST(request: NextRequest) {
                     setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
                 )
             ]);
-            console.log('Image message broadcasted via Pusher successfully');
         } catch (pusherError) {
             console.error('Failed to broadcast message via Pusher:', pusherError);
             // Don't fail the request if Pusher fails

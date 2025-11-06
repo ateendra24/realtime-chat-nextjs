@@ -16,7 +16,11 @@ export const users = pgTable("users", {
   lastSeen: timestamp("last_seen"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  usernameIdx: index("users_username_idx").on(table.username),
+  emailIdx: index("users_email_idx").on(table.email),
+  // For full-text search - will create via migration
+}));
 
 // Chats table (both direct and group chats)
 export const chats = pgTable("chats", {
@@ -36,7 +40,11 @@ export const chats = pgTable("chats", {
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  lastMessageAtIdx: index("chats_last_message_at_idx").on(table.lastMessageAt),
+  isActiveIdx: index("chats_is_active_idx").on(table.isActive),
+  typeIdx: index("chats_type_idx").on(table.type),
+}));
 
 // Chat participants (many-to-many relationship)
 export const chatParticipants = pgTable("chat_participants", {
@@ -51,6 +59,10 @@ export const chatParticipants = pgTable("chat_participants", {
   leftAt: timestamp("left_at"),
 }, (table) => ({
   chatUserUnique: unique().on(table.chatId, table.userId),
+  userIdIdx: index("chat_participants_user_id_idx").on(table.userId),
+  chatIdIdx: index("chat_participants_chat_id_idx").on(table.chatId),
+  userChatIdx: index("chat_participants_user_chat_idx").on(table.userId, table.chatId),
+  lastReadIdx: index("chat_participants_last_read_idx").on(table.chatId, table.lastReadMessageId),
 }));
 
 // Messages table

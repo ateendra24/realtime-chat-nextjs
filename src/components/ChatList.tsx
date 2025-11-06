@@ -74,15 +74,69 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   useEffect(() => {
     if (!realtimeClient) return;
 
-    const handleNewMessage = (message: unknown) => {
+    const handleNewMessage = (message: any) => {
+      // Optimistically update the chat list for immediate feedback
+      setChats(prevChats => {
+        const chatId = message.chatId;
+        const chatIndex = prevChats.findIndex(c => c.id === chatId);
+
+        if (chatIndex === -1) {
+          // New chat - trigger full refresh
+          throttledRefresh();
+          return prevChats;
+        }
+
+        // Update existing chat
+        const updatedChats = [...prevChats];
+        const chat = { ...updatedChats[chatIndex] };
+
+        // Update last message
+        chat.lastMessage = {
+          content: message.content,
+          createdAt: message.createdAt,
+          userName: message.user,
+          userId: message.userId,
+        };
+
+        // Increment unread count only if this chat is not currently selected
+        if (selectedChatId !== chatId) {
+          chat.unreadCount = (chat.unreadCount || 0) + 1;
+        }
+
+        // Move to top
+        updatedChats.splice(chatIndex, 1);
+        updatedChats.unshift(chat);
+
+        return updatedChats;
+      });
+
+      // Still trigger throttled refresh for full sync
       throttledRefresh();
     };
 
-    const handleChatListUpdate = (data: unknown) => {
+    const handleChatListUpdate = (data: any) => {
+      // Immediate update for chat list changes
+      const chatId = data?.chatId;
+
+      if (chatId) {
+        setChats(prevChats => {
+          const chatIndex = prevChats.findIndex(c => c.id === chatId);
+          if (chatIndex !== -1) {
+            // Move this chat to top if it exists
+            const updatedChats = [...prevChats];
+            const chat = updatedChats.splice(chatIndex, 1)[0];
+            updatedChats.unshift(chat);
+            return updatedChats;
+          }
+          return prevChats;
+        });
+      }
+
       throttledRefresh();
     };
 
-    const handleGlobalChatListUpdate = (data: unknown) => {
+    const handleGlobalChatListUpdate = (data: any) => {
+      // For global updates, just trigger refresh
       throttledRefresh();
     };
 
@@ -93,7 +147,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     return () => {
       realtimeClient.cleanup();
     };
-  }, [realtimeClient, throttledRefresh]);
+  }, [realtimeClient, throttledRefresh, selectedChatId]);
 
   const fetchChats = useCallback(async (showLoadingState = true) => {
     try {
@@ -397,11 +451,13 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                           </p>
                           <div className="flex items-center space-x-1">
                             {/* Unread message count - hide for currently selected chat to prevent flicker */}
-                            {chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id && (
-                              <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5">
-                                {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-                              </Badge>
-                            )}
+                            {typeof chat.unreadCount === 'number' &&
+                              chat.unreadCount > 0 &&
+                              selectedChatId !== chat.id && (
+                                <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5">
+                                  {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                                </Badge>
+                              )}
                             {/* Role badge for group chats */}
                             {chat.type === 'group' && (chat.role === 'owner' || chat.isOwner) && (
                               <Badge className="text-xs rounded-full">

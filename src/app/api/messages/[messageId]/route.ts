@@ -119,7 +119,6 @@ export async function DELETE(
             );
 
             await Promise.all(deletePromises);
-            console.log(`✅ Deleted ${attachments.length} image(s) from Vercel Blob`);
         }
 
         // Soft delete the message
