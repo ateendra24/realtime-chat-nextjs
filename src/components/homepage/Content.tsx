@@ -1,7 +1,8 @@
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { ArrowRight, ArrowRightIcon, Sparkles } from 'lucide-react'
 import React from 'react'
 import { Button } from '../ui/button'
 import Link from 'next/link'
+import { AnimatedShinyText } from '../ui/animated-shiny-text'
 
 function Content() {
     return (
@@ -10,19 +11,18 @@ function Content() {
                 {/* Hero Section */}
                 <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
                     {/* Left Side - Text Content */}
-                    <div className="space-y-4 sm:space-y-6 text-center lg:text-left">
-                        <div className="space-y-2">
-                            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs sm:text-sm font-medium">
-                                <Sparkles className="w-3 sm:w-4 h-3 sm:h-4" />
-                                <span>Real-time Messaging Platform</span>
-                            </div>
+                    <div className="space-y-3 sm:space-y-4 text-center lg:text-left">
+                        <div className="group w-fit rounded-full border border-black/5 bg-neutral-100 text-base text-white transition-all ease-in hover:cursor-pointer hover:bg-neutral-200 dark:border-white/5 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                            <AnimatedShinyText className="inline-flex items-center justify-center px-4 py-1 transition ease-out hover:text-neutral-600 hover:duration-300 hover:dark:text-neutral-400">
+                                <span>✨ v2.0 is here!</span>
+                                <ArrowRightIcon className="ml-1 size-3 transition-transform duration-300 ease-in-out group-hover:translate-x-0.5" />
+                            </AnimatedShinyText>
                         </div>
 
-                        <div className="space-y-4">
-                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                                Connect & Chat
-                                <br />
-                                <span className="bg-gradient-to-r from-primary via-primary to-primary/70 bg-clip-text text-transparent">
+                        <div className="space-y-2">
+                            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold ">
+                                Connect & Chat <br />
+                                <span className="bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
                                     Instantly
                                 </span>
                             </h1>

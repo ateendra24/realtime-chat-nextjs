@@ -244,8 +244,8 @@ export function Messages({
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />
             </div>
-            <ProgressiveBlur height="10%" position="bottom" />
-            <ProgressiveBlur height="10%" position="top" />
+            <ProgressiveBlur height="8%" position="bottom" />
+            <ProgressiveBlur height="8%" position="top" />
         </ScrollArea>
     );
 }
