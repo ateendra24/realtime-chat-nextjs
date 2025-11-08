@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { chatParticipants } from "@/db/schema";
+import { chatParticipants, messages } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export async function POST(
@@ -21,8 +21,36 @@ export async function POST(
             return NextResponse.json({ error: "Chat ID and Message ID are required" }, { status: 400 });
         }
 
+        // Verify user is a participant of this chat
+        const participant = await db
+            .select()
+            .from(chatParticipants)
+            .where(and(
+                eq(chatParticipants.chatId, chatId),
+                eq(chatParticipants.userId, userId)
+            ))
+            .limit(1);
+
+        if (participant.length === 0) {
+            return NextResponse.json({ error: "Not a participant of this chat" }, { status: 403 });
+        }
+
+        // Verify the message exists and belongs to this chat (optional but safer)
+        const message = await db
+            .select({ id: messages.id })
+            .from(messages)
+            .where(and(
+                eq(messages.id, messageId),
+                eq(messages.chatId, chatId)
+            ))
+            .limit(1);
+
+        if (message.length === 0) {
+            return NextResponse.json({ error: "Message not found in this chat" }, { status: 404 });
+        }
+
         // Update the user's last read message for this chat
-        await db
+        const result = await db
             .update(chatParticipants)
             .set({
                 lastReadMessageId: messageId,
@@ -31,9 +59,19 @@ export async function POST(
             .where(and(
                 eq(chatParticipants.chatId, chatId),
                 eq(chatParticipants.userId, userId)
-            ));
+            ))
+            .returning({ id: chatParticipants.id });
 
-        return NextResponse.json({ success: true });
+        if (result.length === 0) {
+            return NextResponse.json({ error: "Failed to update read status" }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            chatId,
+            messageId,
+            lastReadAt: new Date().toISOString()
+        });
     } catch (error) {
         console.error("Error marking message as read:", error);
         return NextResponse.json(
