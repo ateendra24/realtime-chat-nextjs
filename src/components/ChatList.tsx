@@ -436,12 +436,10 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                             {debouncedSearchQuery ? highlightText(getChatDisplayName(chat), debouncedSearchQuery) : getChatDisplayName(chat)}
                           </p>
                           <span className="text-xs text-muted-foreground">
-                            {/* {getLastMessageTime(chat)} */}
                             {chat.lastMessage?.createdAt ?
                               moment(chat.lastMessage?.createdAt).format('l') === moment().format('l') ?
                                 (moment(chat?.lastMessage?.createdAt).format('LT')) :
                                 moment(chat?.lastMessage?.createdAt).format('ll') : moment(chat?.createdAt).format('l')}
-
                           </span>
                         </div>
 

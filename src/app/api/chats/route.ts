@@ -185,7 +185,7 @@ export async function GET() {
       if (row.last_message_content) {
         chat.lastMessage = {
           content: row.last_message_content.substring(0, 100), // Truncate long messages for list view
-          createdAt: row.last_message_at,
+          createdAt: row.last_message_at ? new Date(row.last_message_at + 'Z').toISOString() : null,
           userName: row.last_message_user_name,
         };
       }

@@ -21,6 +21,14 @@ export function useChatLogic() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isUpdatingReactionsRef = useRef(false);
 
+    // Message cache: Map<chatId, {messages, cursor, hasMore, timestamp}>
+    const messagesCacheRef = useRef<Map<string, {
+        messages: Message[];
+        nextCursor: string | null;
+        hasMoreMessages: boolean;
+        timestamp: number;
+    }>>(new Map());
+
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Message[]>([]);
@@ -88,17 +96,27 @@ export function useChatLogic() {
         if (!realtimeClient) return;
 
         realtimeClient.onMessage((msg: Message) => {
-            // Only show messages from other users (not the current user)
-            // The current user's messages are already added optimistically when sending
+            // Handle messages for the currently selected chat
             if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
-
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
                     if (messageExists) {
                         return prev;
                     }
-                    return [...prev, msg];
+                    const updatedMessages = [...prev, msg];
+
+                    // Update cache with new message
+                    const cached = messagesCacheRef.current.get(selectedChat.id);
+                    if (cached) {
+                        messagesCacheRef.current.set(selectedChat.id, {
+                            ...cached,
+                            messages: updatedMessages,
+                            timestamp: Date.now()
+                        });
+                    }
+
+                    return updatedMessages;
                 });
 
                 // Smooth scroll for incoming messages from others with proper delay
@@ -106,6 +124,23 @@ export function useChatLogic() {
 
                 // Mark the message as read since user is viewing this chat
                 markLastMessageAsRead(selectedChat.id, msg.id);
+            }
+            // Handle messages for OTHER chats (not currently selected) - update their cache
+            else if (msg.chatId && msg.chatId !== selectedChat?.id) {
+                const cached = messagesCacheRef.current.get(msg.chatId);
+                if (cached) {
+                    // Check if message already exists in cache
+                    const messageExists = cached.messages.some(existingMsg => existingMsg.id === msg.id);
+                    if (!messageExists) {
+                        // Add new message to cached messages
+                        const updatedMessages = [...cached.messages, msg];
+                        messagesCacheRef.current.set(msg.chatId, {
+                            ...cached,
+                            messages: updatedMessages,
+                            timestamp: Date.now()
+                        });
+                    }
+                }
             }
         });
 
@@ -254,7 +289,21 @@ export function useChatLogic() {
 
             // Clear input and show message immediately
             setInput("");
-            setMessages((prev) => [...prev, optimisticMessage]);
+            setMessages((prev) => {
+                const updatedMessages = [...prev, optimisticMessage];
+
+                // Update cache with optimistic message
+                const cached = messagesCacheRef.current.get(chatId);
+                if (cached) {
+                    messagesCacheRef.current.set(chatId, {
+                        ...cached,
+                        messages: updatedMessages,
+                        timestamp: Date.now()
+                    });
+                }
+
+                return updatedMessages;
+            });
 
             // Scroll to bottom smoothly for the sender's message
             setTimeout(() => scrollToBottom(true));
@@ -274,16 +323,30 @@ export function useChatLogic() {
                     const result = await response.json();
 
                     // Replace optimistic message with real message
-                    setMessages((prev) => prev.map(prevMsg =>
-                        prevMsg.id === tempId
-                            ? {
-                                ...prevMsg,
-                                id: result.message.id, // Use real ID from server
-                                createdAt: new Date(result.message.createdAt),
-                                isOptimistic: false, // Remove optimistic flag
-                            }
-                            : prevMsg
-                    ));
+                    setMessages((prev) => {
+                        const updatedMessages = prev.map(prevMsg =>
+                            prevMsg.id === tempId
+                                ? {
+                                    ...prevMsg,
+                                    id: result.message.id, // Use real ID from server
+                                    createdAt: new Date(result.message.createdAt),
+                                    isOptimistic: false, // Remove optimistic flag
+                                }
+                                : prevMsg
+                        );
+
+                        // Update cache with confirmed message
+                        const cached = messagesCacheRef.current.get(chatId);
+                        if (cached) {
+                            messagesCacheRef.current.set(chatId, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
+
+                        return updatedMessages;
+                    });
 
                     // Mark the message as read for the sender (don't await to keep it fast)
                     markLastMessageAsRead(chatId, result.message.id).catch(console.error);
@@ -325,9 +388,35 @@ export function useChatLogic() {
         setShowCreateGroup(false);
         setSelectedChat(chat);
 
-        // Clear old messages and show loading immediately
-        setMessages([]);
-        setMessagesLoading(true);
+        // Check if we have cached messages for this chat
+        const cached = messagesCacheRef.current.get(chat.id);
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+        const isCacheValid = cached && (Date.now() - cached.timestamp) < CACHE_DURATION;
+
+        // STALE-WHILE-REVALIDATE: Show cached messages immediately if available
+        if (cached) {
+            // Always show cached data immediately (even if it might be slightly stale)
+            setMessages(cached.messages);
+            setHasMoreMessages(cached.hasMoreMessages);
+            setNextCursor(cached.nextCursor);
+            setMessagesLoading(false);
+
+            // Scroll to bottom immediately with cached data
+            requestAnimationFrame(() => {
+                scrollToBottom(false);
+                setIsInitialLoad(false);
+            });
+
+            // Mark last message as read (non-blocking)
+            if (cached.messages.length > 0) {
+                const lastMessage = cached.messages[cached.messages.length - 1];
+                markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+            }
+        } else {
+            // No cache - show loading state
+            setMessages([]);
+            setMessagesLoading(true);
+        }
 
         // Reset pagination state
         setHasMoreMessages(false);
@@ -337,7 +426,7 @@ export function useChatLogic() {
 
         if (chat.id) {
             try {
-                // Fetch messages and members in parallel for group chats
+                // Fetch fresh data in background (always, even if cache exists)
                 const fetchPromises = [
                     fetch(`/api/chats/${chat.id}/messages?limit=30`, {
                         signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -370,15 +459,82 @@ export function useChatLogic() {
 
                 if (response.ok) {
                     const result = await response.json();
+                    let freshMessages: Message[] = [];
+                    let freshHasMore = false;
+                    let freshCursor: string | null = null;
+
                     // Handle both old format (array) and new format (object with pagination)
                     if (Array.isArray(result)) {
-                        setMessages(result);
-                        setHasMoreMessages(false);
-                        setNextCursor(null);
+                        freshMessages = result;
+                        freshHasMore = false;
+                        freshCursor = null;
                     } else {
-                        setMessages(result.messages || []);
-                        setHasMoreMessages(result.hasMoreMessages || false);
-                        setNextCursor(result.nextCursor || null);
+                        freshMessages = result.messages || [];
+                        freshHasMore = result.hasMoreMessages || false;
+                        freshCursor = result.nextCursor || null;
+                    }
+
+                    // If we showed cached data, merge it intelligently with fresh data
+                    let finalMessages = freshMessages;
+                    if (cached && cached.messages.length > 0) {
+                        // Check if cached data has newer messages than server response
+                        const cachedNewestMsg = cached.messages[cached.messages.length - 1];
+                        const freshNewestMsg = freshMessages[freshMessages.length - 1];
+
+                        if (cachedNewestMsg && freshNewestMsg) {
+                            const cachedTime = new Date(cachedNewestMsg.createdAt).getTime();
+                            const freshTime = new Date(freshNewestMsg.createdAt).getTime();
+
+                            // If cache has newer messages (from real-time), append them to fresh data
+                            if (cachedTime > freshTime) {
+                                // Find messages in cache that are newer than the freshest server message
+                                const newerMessages = cached.messages.filter(msg => {
+                                    const msgTime = new Date(msg.createdAt).getTime();
+                                    return msgTime > freshTime && !freshMessages.some(fm => fm.id === msg.id);
+                                });
+
+                                if (newerMessages.length > 0) {
+                                    finalMessages = [...freshMessages, ...newerMessages];
+                                }
+                            }
+                        }
+                    }
+
+                    // Update cache with merged data
+                    messagesCacheRef.current.set(chat.id, {
+                        messages: finalMessages,
+                        nextCursor: freshCursor,
+                        hasMoreMessages: freshHasMore,
+                        timestamp: Date.now()
+                    });
+
+                    // Update state with final merged data
+                    setMessages(finalMessages);
+                    setHasMoreMessages(freshHasMore);
+                    setNextCursor(freshCursor);
+
+                    // Only scroll and mark as read if we didn't show cached data
+                    if (!cached) {
+                        requestAnimationFrame(() => {
+                            scrollToBottom(false);
+                            setIsInitialLoad(false);
+                        });
+
+                        // Mark messages as read if there are messages (non-blocking)
+                        if (finalMessages.length > 0) {
+                            const lastMessage = finalMessages[finalMessages.length - 1];
+                            markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+                        }
+                    } else {
+                        // If cache was shown, check if we have new messages to mark as read
+                        if (finalMessages.length > 0) {
+                            const lastMessage = finalMessages[finalMessages.length - 1];
+                            const cachedLastMessage = cached.messages[cached.messages.length - 1];
+                            if (!cachedLastMessage || lastMessage.id !== cachedLastMessage.id) {
+                                // New messages arrived, mark as read
+                                markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+                            }
+                        }
                     }
                 } else {
                     console.error("Failed to load messages:", response.statusText);
@@ -386,18 +542,9 @@ export function useChatLogic() {
             } catch (error) {
                 console.error("Error loading messages:", error);
             } finally {
-                setMessagesLoading(false);
-                // Use requestAnimationFrame to ensure the DOM is updated before scrolling and showing messages
-                requestAnimationFrame(() => {
-                    scrollToBottom(false); // Instant scroll
-                    setIsInitialLoad(false); // Reveal messages
-                });
-
-                // Mark messages as read if there are messages (non-blocking)
-                const messageArray = Array.isArray(messages) ? messages : messages || [];
-                if (messageArray.length > 0) {
-                    const lastMessage = messageArray[messageArray.length - 1];
-                    markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+                // Only set loading to false if we didn't show cached data
+                if (!cached) {
+                    setMessagesLoading(false);
                 }
             }
         } else {
@@ -582,11 +729,27 @@ export function useChatLogic() {
 
             if (response.ok) {
                 // Update the message to show as deleted
-                setMessages(prev => prev.map(msg =>
-                    msg.id === messageId
-                        ? { ...msg, isDeleted: true, content: 'This message was deleted' }
-                        : msg
-                ));
+                setMessages(prev => {
+                    const updatedMessages = prev.map(msg =>
+                        msg.id === messageId
+                            ? { ...msg, isDeleted: true, content: 'This message was deleted' }
+                            : msg
+                    );
+
+                    // Update cache with deleted message
+                    if (selectedChat?.id) {
+                        const cached = messagesCacheRef.current.get(selectedChat.id);
+                        if (cached) {
+                            messagesCacheRef.current.set(selectedChat.id, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
+                    }
+
+                    return updatedMessages;
+                });
             }
         } catch (error) {
             console.error('Error deleting message:', error);
@@ -702,7 +865,23 @@ export function useChatLogic() {
 
     const addImageMessage = (imageMessage: Message) => {
         // Add the image message to local state for optimistic update
-        setMessages((prev) => [...prev, imageMessage]);
+        setMessages((prev) => {
+            const updatedMessages = [...prev, imageMessage];
+
+            // Update cache with image message
+            if (selectedChat?.id) {
+                const cached = messagesCacheRef.current.get(selectedChat.id);
+                if (cached) {
+                    messagesCacheRef.current.set(selectedChat.id, {
+                        ...cached,
+                        messages: updatedMessages,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+
+            return updatedMessages;
+        });
 
         // Scroll to bottom
         setTimeout(() => {

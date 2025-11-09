@@ -60,7 +60,7 @@ export function Messages({
 
     return (
         <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative mask-to-top-bottom backdrop-blur-md ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
-            <div className="p-4 pt-20 pb-24 h-full">
+            <div className={`p-4 ${selectedChat && 'pt-20 pb-24'} h-full`}>
                 {!selectedChat ? (
                     <div className="h-[85vh] flex flex-col items-center justify-center text-center text-muted-foreground py-8">
                         <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-40 animate-pulse" />
