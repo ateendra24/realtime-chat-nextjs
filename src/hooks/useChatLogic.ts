@@ -655,7 +655,8 @@ export function useChatLogic() {
 
             if (response.ok) {
                 const data = await response.json();
-                setSelectedChat(data.chat);
+                // Use handleChatSelect to properly load messages and set up the chat
+                await handleChatSelect(data.chat);
                 setChatListRefresh(prev => prev + 1);
             }
         } catch (error) {

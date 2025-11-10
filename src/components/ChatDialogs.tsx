@@ -61,7 +61,7 @@ export function ChatDialogs({
                             onDirectChat(user);
                             setShowUserSearch(false);
                         }}
-                        placeholder="Search users to chat with..."
+                        placeholder="Search users to chat with... eg: Ateendra"
                     />
                 </DialogContent>
             </Dialog>
