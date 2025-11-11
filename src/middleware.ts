@@ -7,8 +7,8 @@ const publicRoutes = createRouteMatcher(['/', '/sign-in', '/sign-up', '/sign-in/
 export default clerkMiddleware(async (auth, req) => {
   const { isAuthenticated } = await auth(); // Await the auth function
 
-  // Allow SSO callback and continue-signup to proceed without redirects
-  if (req.nextUrl.pathname === '/sso-callback' || req.nextUrl.pathname === '/continue-signup') {
+  // Allow SSO callback and sign-in continuation to proceed without redirects
+  if (req.nextUrl.pathname === '/sign-in/sso-callback' || req.nextUrl.pathname === '/sign-in/continue') {
     return NextResponse.next();
   }
 
