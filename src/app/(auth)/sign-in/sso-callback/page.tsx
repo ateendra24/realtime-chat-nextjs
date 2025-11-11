@@ -7,7 +7,7 @@ export default function Page() {
         <>
             <AuthenticateWithRedirectCallback continueSignUpUrl="/sign-in/continue" />
 
-            {/* Required for sign-up flows
+            {/* Required for sign-in flows
       Clerk's bot sign-up protection is enabled by default */}
             <div id="clerk-captcha" />
         </>
