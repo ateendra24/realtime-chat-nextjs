@@ -5,8 +5,19 @@ import { chats, chatParticipants } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import { pusher } from "@/lib/pusher";
 
-interface ChatRow {
+interface OtherUser {
+  full_name?: string | null;
+  username?: string | null;
+  avatar_url?: string | null;
+  is_online?: boolean | null;
+}
+
+interface ExistingChatRow {
   id: string;
+  other_full_name?: string | null;
+  other_username?: string | null;
+  other_avatar_url?: string | null;
+  other_is_online?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -59,7 +70,7 @@ export async function POST(request: NextRequest) {
     `);
 
     if (existingChat && Array.isArray(existingChat) && existingChat.length > 0) {
-      const chat = existingChat[0] as any;
+      const chat = existingChat[0] as ExistingChatRow;
       // Format the chat with proper display name for direct chats
       const formattedChat = {
         ...chat,
@@ -99,7 +110,7 @@ export async function POST(request: NextRequest) {
     `);
 
     const otherUser = Array.isArray(otherUserResult) && otherUserResult.length > 0
-      ? otherUserResult[0] as any
+      ? otherUserResult[0] as OtherUser
       : null;
 
     // Format the new chat with display name for direct chats

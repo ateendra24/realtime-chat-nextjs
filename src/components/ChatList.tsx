@@ -10,7 +10,7 @@ import { Skeleton } from "./ui/skeleton";
 import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
-import type { Chat, ChatListProps } from '@/types/global';
+import type { Chat, ChatListProps, Message } from '@/types/global';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -74,10 +74,12 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   useEffect(() => {
     if (!realtimeClient) return;
 
-    const handleNewMessage = (message: any) => {
+    const handleNewMessage = (message: Message) => {
       // Optimistically update the chat list for immediate feedback
       setChats(prevChats => {
         const chatId = message.chatId;
+        if (!chatId) return prevChats;
+
         const chatIndex = prevChats.findIndex(c => c.id === chatId);
 
         if (chatIndex === -1) {
@@ -90,10 +92,14 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
         const updatedChats = [...prevChats];
         const chat = { ...updatedChats[chatIndex] };
 
-        // Update last message
+        // Update last message - convert string to Date if needed
+        const createdAt = typeof message.createdAt === 'string'
+          ? new Date(message.createdAt)
+          : message.createdAt;
+
         chat.lastMessage = {
           content: message.content,
-          createdAt: message.createdAt,
+          createdAt: createdAt,
           userName: message.user,
           userId: message.userId,
         };
@@ -114,7 +120,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       throttledRefresh();
     };
 
-    const handleChatListUpdate = (data: any) => {
+    const handleChatListUpdate = (data: { chatId?: string }) => {
       // Immediate update for chat list changes
       const chatId = data?.chatId;
 
@@ -135,7 +141,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       throttledRefresh();
     };
 
-    const handleGlobalChatListUpdate = (data: any) => {
+    const handleGlobalChatListUpdate = () => {
       // For global updates, just trigger refresh
       throttledRefresh();
     };
