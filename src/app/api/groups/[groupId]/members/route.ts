@@ -17,48 +17,28 @@ export async function GET(
 
         const { groupId } = await params;
 
-        // OPTIMIZED: Combine verification and data fetching in ONE query
-        // Check if group exists, user is member, and fetch all members in parallel
-        const [chatCheck, membersData] = await Promise.all([
-            // Verify chat exists, is a group, and user is a member
-            db
-                .select({
-                    chatId: chats.id,
-                    isMember: chatParticipants.userId
-                })
-                .from(chats)
-                .leftJoin(
-                    chatParticipants,
-                    and(
-                        eq(chatParticipants.chatId, chats.id),
-                        eq(chatParticipants.userId, userId)
-                    )
+        // SECURITY: Verify authorization BEFORE fetching members
+        // This prevents unauthorized users from triggering expensive queries
+        const chatCheck = await db
+            .select({
+                chatId: chats.id,
+                isMember: chatParticipants.userId
+            })
+            .from(chats)
+            .leftJoin(
+                chatParticipants,
+                and(
+                    eq(chatParticipants.chatId, chats.id),
+                    eq(chatParticipants.userId, userId)
                 )
-                .where(and(
-                    eq(chats.id, groupId),
-                    eq(chats.type, 'group')
-                ))
-                .limit(1),
+            )
+            .where(and(
+                eq(chats.id, groupId),
+                eq(chats.type, 'group')
+            ))
+            .limit(1);
 
-            // Fetch all members data (will use even if auth fails, but query is fast)
-            db
-                .select({
-                    id: users.id,
-                    name: users.fullName,
-                    username: users.username,
-                    avatarUrl: users.avatarUrl,
-                    role: chatParticipants.role,
-                    joinedAt: chatParticipants.joinedAt,
-                    isOnline: users.isOnline,
-                    lastSeen: users.lastSeen,
-                })
-                .from(chatParticipants)
-                .innerJoin(users, eq(chatParticipants.userId, users.id))
-                .where(eq(chatParticipants.chatId, groupId))
-                .orderBy(chatParticipants.role, chatParticipants.joinedAt)
-        ]);
-
-        // Validate after parallel fetch
+        // Short-circuit: Reject unauthorized requests early
         if (chatCheck.length === 0) {
             return NextResponse.json({ error: 'Group not found' }, { status: 404 });
         }
@@ -66,6 +46,23 @@ export async function GET(
         if (!chatCheck[0].isMember) {
             return NextResponse.json({ error: 'Unauthorized - Not a member of this group' }, { status: 403 });
         }
+
+        // ONLY fetch members after authorization succeeds
+        const membersData = await db
+            .select({
+                id: users.id,
+                name: users.fullName,
+                username: users.username,
+                avatarUrl: users.avatarUrl,
+                role: chatParticipants.role,
+                joinedAt: chatParticipants.joinedAt,
+                isOnline: users.isOnline,
+                lastSeen: users.lastSeen,
+            })
+            .from(chatParticipants)
+            .innerJoin(users, eq(chatParticipants.userId, users.id))
+            .where(eq(chatParticipants.chatId, groupId))
+            .orderBy(chatParticipants.role, chatParticipants.joinedAt);
 
         // Transform the data to match the expected format
         const members = membersData.map(member => ({

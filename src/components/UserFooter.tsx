@@ -359,7 +359,7 @@ function UserFooter() {
                                     variant="outline"
                                     size="sm"
                                     disabled={uploadingAvatar}
-                                    className="relative overflow-hidden"
+                                    className="relative overflow-hidden cursor-pointer"
                                 >
                                     {uploadingAvatar ? (
                                         <span className="flex items-center gap-2">
@@ -443,6 +443,7 @@ function UserFooter() {
                         <div className="flex justify-end space-x-2">
                             <Button
                                 variant="outline"
+                                className="cursor-pointer"
                                 onClick={() => {
                                     setShowProfileEdit(false);
                                     setErrors({});
@@ -456,6 +457,7 @@ function UserFooter() {
                             </Button>
                             <Button
                                 onClick={handleSaveProfile}
+                                className="cursor-pointer"
                                 disabled={saving || uploadingAvatar || !editedUsername.trim()}
                             >
                                 {saving ? (
@@ -594,6 +596,7 @@ function UserFooter() {
                         <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 pt-4">
                             <Button
                                 variant="outline"
+                                className="cursor-pointer"
                                 onClick={() => {
                                     setShowPasswordChange(false);
                                     setPasswordErrors({});
@@ -614,6 +617,7 @@ function UserFooter() {
                             </Button>
                             <Button
                                 onClick={handlePasswordChange}
+                                className="cursor-pointer"
                                 disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                             >
                                 {changingPassword ? (

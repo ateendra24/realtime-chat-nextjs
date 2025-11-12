@@ -155,8 +155,11 @@ export async function GET() {
       ORDER BY uc.last_message_at DESC NULLS LAST
     `);
 
+    // Handle both postgres-js v3.3.x (returns array) and v3.4.x+ (returns {rows: []})
+    const rows = (Array.isArray(result) ? result : (result as { rows: ChatRow[] }).rows) as ChatRow[];
+
     // Transform raw result to match expected format (optimized for minimal payload)
-    const chatsWithDetails = (result as unknown as ChatRow[]).map((row) => {
+    const chatsWithDetails = rows.map((row) => {
       const isDirectChat = row.type === 'direct';
       const displayName = isDirectChat
         ? (row.other_full_name || row.other_username || 'Unknown User')

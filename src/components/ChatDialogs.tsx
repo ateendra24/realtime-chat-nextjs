@@ -48,7 +48,7 @@ export function ChatDialogs({
         <>
             {/* User Search Dialog */}
             <Dialog open={showUserSearch} onOpenChange={setShowUserSearch}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>Search Users</DialogTitle>
                         <DialogDescription>
@@ -68,7 +68,7 @@ export function ChatDialogs({
 
             {/* Create Group Dialog */}
             <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>Create Group</DialogTitle>
                         <DialogDescription>
