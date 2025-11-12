@@ -3,15 +3,16 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Ellipsis } from "lucide-react";
+import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus } from "lucide-react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
 import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
-import type { Chat, ChatListProps } from '@/types/global';
+import type { Chat, ChatListProps, Message } from '@/types/global';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { ScrollArea } from "./ui/scroll-area";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -73,15 +74,75 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   useEffect(() => {
     if (!realtimeClient) return;
 
-    const handleNewMessage = (message: unknown) => {
+    const handleNewMessage = (message: Message) => {
+      // Optimistically update the chat list for immediate feedback
+      setChats(prevChats => {
+        const chatId = message.chatId;
+        if (!chatId) return prevChats;
+
+        const chatIndex = prevChats.findIndex(c => c.id === chatId);
+
+        if (chatIndex === -1) {
+          // New chat - trigger full refresh
+          throttledRefresh();
+          return prevChats;
+        }
+
+        // Update existing chat
+        const updatedChats = [...prevChats];
+        const chat = { ...updatedChats[chatIndex] };
+
+        // Update last message - convert string to Date if needed
+        const createdAt = typeof message.createdAt === 'string'
+          ? new Date(message.createdAt)
+          : message.createdAt;
+
+        chat.lastMessage = {
+          content: message.content,
+          createdAt: createdAt,
+          userName: message.user,
+          userId: message.userId,
+        };
+
+        // Increment unread count only if this chat is not currently selected
+        if (selectedChatId !== chatId) {
+          chat.unreadCount = (chat.unreadCount || 0) + 1;
+        }
+
+        // Move to top
+        updatedChats.splice(chatIndex, 1);
+        updatedChats.unshift(chat);
+
+        return updatedChats;
+      });
+
+      // Still trigger throttled refresh for full sync
       throttledRefresh();
     };
 
-    const handleChatListUpdate = (data: unknown) => {
+    const handleChatListUpdate = (data: { chatId?: string }) => {
+      // Immediate update for chat list changes
+      const chatId = data?.chatId;
+
+      if (chatId) {
+        setChats(prevChats => {
+          const chatIndex = prevChats.findIndex(c => c.id === chatId);
+          if (chatIndex !== -1) {
+            // Move this chat to top if it exists
+            const updatedChats = [...prevChats];
+            const chat = updatedChats.splice(chatIndex, 1)[0];
+            updatedChats.unshift(chat);
+            return updatedChats;
+          }
+          return prevChats;
+        });
+      }
+
       throttledRefresh();
     };
 
-    const handleGlobalChatListUpdate = (data: unknown) => {
+    const handleGlobalChatListUpdate = () => {
+      // For global updates, just trigger refresh
       throttledRefresh();
     };
 
@@ -92,7 +153,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     return () => {
       realtimeClient.cleanup();
     };
-  }, [realtimeClient, throttledRefresh]);
+  }, [realtimeClient, throttledRefresh, selectedChatId]);
 
   const fetchChats = useCallback(async (showLoadingState = true) => {
     try {
@@ -213,9 +274,9 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Chats</h2>
+      <div className="px-4 py-2">
+        <div className="flex items-end justify-between">
+          <h2 className="text-lg font-semibold">ChatFlow</h2>
           <div className="flex space-x-2">
             {theme === "light" ? (
               <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
@@ -230,10 +291,10 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
               <DropdownMenuTrigger asChild>
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="secondary"
                   className="h-9 w-9 p-0 rounded-full hover:bg-accent cursor-pointer data-[state=open]:bg-accent"
                 >
-                  <Ellipsis className="h-4 w-4 rotate-90" />
+                  <Plus className="h-4 w-4 rotate-90" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-48 rounded-xl">
@@ -249,41 +310,11 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
             </DropdownMenu>
           </div>
         </div>
-
-        {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-secondary rounded-full p-1">
-          <Button
-            variant={filter === 'all' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('all')}
-            className="flex-1 rounded-full"
-          >
-            All
-          </Button>
-          <Button
-            variant={filter === 'direct' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('direct')}
-            className="flex-1 rounded-full"
-          >
-            <MessageSquare className="h-3 w-3 mr-1" />
-            Direct
-          </Button>
-          <Button
-            variant={filter === 'group' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setFilter('group')}
-            className="flex-1 rounded-full"
-          >
-            <Users className="h-3 w-3 mr-1" />
-            Groups
-          </Button>
-        </div>
       </div>
 
       {/* Search Input */}
-      <div className="relative px-4 pt-3 pb-2">
-        <Search className="absolute w-4 h-4 left-7 top-5.5 text-muted-foreground pointer-events-none" />
+      <div className="relative px-4 py-2">
+        <Search className="absolute w-4 h-4 left-7 top-4.5 text-muted-foreground pointer-events-none" />
         <Input
           className="pl-9 pr-9 rounded-full"
           placeholder="Search chats..."
@@ -294,12 +325,42 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           <Button
             variant="ghost"
             size="sm"
-            className="absolute right-6 top-5 h-6 w-6 p-0"
+            className="absolute right-6 top-3.5 h-6 w-6 p-0"
             onClick={() => setSearchQuery('')}
           >
             <X className="h-3 w-3" />
           </Button>
         )}
+      </div>
+
+      {/* {filter} */}
+      <div className="flex space-x-2 rounded-full mx-4 p-1">
+        <Button
+          variant={filter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('all')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          All
+        </Button>
+        <Button
+          variant={filter === 'direct' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('direct')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          {/* <MessageSquare className="h-3 w-3 mr-1" /> */}
+          Direct
+        </Button>
+        <Button
+          variant={filter === 'group' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('group')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          {/* <Users className="h-3 w-3 mr-1" /> */}
+          Groups
+        </Button>
       </div>
 
       {loading ? (
@@ -337,22 +398,31 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                 <Button
                   variant="link"
                   onClick={onCreateGroup}
-                  className="mt-2"
+                  className="mt-2 cursor-pointer"
                 >
                   Create your first group
+                </Button>
+              )}
+              {!debouncedSearchQuery.trim() && filter === 'all' && (
+                <Button
+                  variant="link"
+                  onClick={onSearchUsers}
+                  className="mt-2 cursor-pointer"
+                >
+                  Search for users
                 </Button>
               )}
             </div>
           ) : (
             <>
               {/* Chat List */}
-              <div className="p-2 space-y-1 overflow-y-auto h-[66vh]">
+              <ScrollArea className="p-2 h-[70vh]">
                 {filteredAndSortedChats.map((chat) => (
                   <AnimatedListItem key={chat.id}>
                     <div
                       key={chat.id}
                       onClick={() => onChatSelect?.(chat)}
-                      className={`flex items-center space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
+                      className={`flex items-center mb-1 space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
                         ? '!bg-border'
                         : chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id
                           ? 'bg-primary/10 border border-primary/30! hover:bg-primary/20'
@@ -372,26 +442,26 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                             {debouncedSearchQuery ? highlightText(getChatDisplayName(chat), debouncedSearchQuery) : getChatDisplayName(chat)}
                           </p>
                           <span className="text-xs text-muted-foreground">
-                            {/* {getLastMessageTime(chat)} */}
                             {chat.lastMessage?.createdAt ?
                               moment(chat.lastMessage?.createdAt).format('l') === moment().format('l') ?
                                 (moment(chat?.lastMessage?.createdAt).format('LT')) :
                                 moment(chat?.lastMessage?.createdAt).format('ll') : moment(chat?.createdAt).format('l')}
-
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-muted-foreground truncate">
+                          <p className="text-xs text-muted-foreground line-clamp-1">
                             {debouncedSearchQuery ? highlightText(getLastMessagePreview(chat), debouncedSearchQuery) : getLastMessagePreview(chat)}
                           </p>
                           <div className="flex items-center space-x-1">
                             {/* Unread message count - hide for currently selected chat to prevent flicker */}
-                            {chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id && (
-                              <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5">
-                                {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
-                              </Badge>
-                            )}
+                            {typeof chat.unreadCount === 'number' &&
+                              chat.unreadCount > 0 &&
+                              selectedChatId !== chat.id && (
+                                <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5">
+                                  {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                                </Badge>
+                              )}
                             {/* Role badge for group chats */}
                             {chat.type === 'group' && (chat.role === 'owner' || chat.isOwner) && (
                               <Badge className="text-xs rounded-full">
@@ -415,7 +485,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                     </div>
                   </AnimatedListItem>
                 ))}
-              </div>
+              </ScrollArea>
             </>
           )}
         </div>

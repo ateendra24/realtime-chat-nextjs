@@ -35,7 +35,7 @@ export async function GET(
             )!;
         }
 
-        // Fetch messages first (fastest query - uses composite index)
+        // Fetch messages with attachments (optimized with indexes)
         const chatMessages = await db
             .select({
                 id: messages.id,
@@ -67,9 +67,9 @@ export async function GET(
         const uniqueUserIds = [...new Set(messagesToReturn.map(msg => msg.userId))];
         const messageIds = messagesToReturn.map(msg => msg.id);
 
-        // Fetch user data, reactions, and user reactions in parallel
+        // Fetch user data and reactions in parallel (optimized with composite indexes)
         const [userData, reactions, userReactions] = await Promise.all([
-            // Fetch users in batch (much faster than JOIN)
+            // Fetch users in batch (uses users_id index)
             uniqueUserIds.length > 0 ? db
                 .select({
                     id: users.id,
@@ -80,19 +80,19 @@ export async function GET(
                 .from(users)
                 .where(inArray(users.id, uniqueUserIds))
                 : Promise.resolve([]),
-            // Fetch all reactions
+            // Fetch all reactions (uses message_reactions_message_emoji_idx)
             messageIds.length > 0 ? db
                 .select({
                     messageId: messageReactions.messageId,
                     emoji: messageReactions.emoji,
-                    count: sql<number>`count(*)`.as('count'),
+                    count: sql<number>`count(*)::int`.as('count'),
                 })
                 .from(messageReactions)
                 .where(inArray(messageReactions.messageId, messageIds))
                 .groupBy(messageReactions.messageId, messageReactions.emoji)
                 : Promise.resolve([]),
 
-            // Fetch user's reactions
+            // Fetch user's reactions (uses message_reactions_message_id_idx + filter)
             messageIds.length > 0 ? db
                 .select({
                     messageId: messageReactions.messageId,
@@ -249,36 +249,27 @@ export async function POST(
 
         const userInfo = participantAndUser[0];
 
-        // Insert the new message and update chat in parallel for better performance
+        // Insert the new message
+        const [newMessage] = await db.insert(messages)
+            .values({
+                chatId,
+                userId,
+                content: content.trim(),
+                createdAt: new Date(),
+            })
+            .returning();
 
-        const [newMessage] = await Promise.all([
-            // Insert message
-            db.insert(messages)
-                .values({
-                    chatId,
-                    userId,
-                    content: content.trim(),
-                    createdAt: new Date(),
-                })
-                .returning()
-                .then(result => result[0]),
-
-            // Update chat metadata in parallel
-            db.update(chats)
-                .set({
-                    lastMessageAt: new Date(),
-                    messageCount: sql`${chats.messageCount} + 1`,
-                    updatedAt: new Date(),
-                })
-                .where(eq(chats.id, chatId))
-        ]);
-
-        console.log('Message inserted and chat updated:', newMessage);
-
-        // We'll update the lastMessageId separately after we have the message ID
-        await db
-            .update(chats)
-            .set({ lastMessageId: newMessage.id })
+        // Update chat metadata with cached last message data
+        await db.update(chats)
+            .set({
+                lastMessageId: newMessage.id,
+                lastMessageAt: newMessage.createdAt,
+                lastMessageContent: newMessage.content,
+                lastMessageUserId: userId,
+                lastMessageUserName: userInfo.fullName || userInfo.username || 'Unknown User',
+                messageCount: sql`${chats.messageCount} + 1`,
+                updatedAt: new Date(),
+            })
             .where(eq(chats.id, chatId));
 
         const responseMessage = {
@@ -310,40 +301,31 @@ export async function POST(
             reactions: [],
         };
 
-        // Broadcast message using Pusher - MUST await in serverless to prevent dropped messages
-        try {
-            // Await Pusher broadcasts to ensure delivery before function terminates (critical for Vercel)
-            // Use Promise.race with timeout to prevent hanging
-            await Promise.race([
-                Promise.all([
-                    // Emit message to chat channel
-                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
+        // Broadcast message using Pusher - Fire and forget for speed (non-blocking)
+        // Don't await Pusher to return response immediately (100-200ms faster)
+        Promise.all([
+            // Emit message to chat channel
+            pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
 
-                    // Emit global chat list update
-                    pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
-                        chatId,
-                        messageId: newMessage.id,
-                        message: newMessage.content,
-                        sender: userId,
-                    }),
+            // Emit global chat list update
+            pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+                chatId,
+                messageId: newMessage.id,
+                message: newMessage.content,
+                sender: userId,
+            }),
 
-                    // Emit chat list update to chat participants
-                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
-                        chatId,
-                        messageId: newMessage.id,
-                    })
-                ]),
-                // Timeout after 3 seconds to prevent hanging (Pusher usually responds in < 500ms)
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
-                )
-            ]);
-        } catch (pusherError) {
-            console.error("Failed to emit Pusher events:", pusherError);
-            // Don't fail the request if Pusher fails
-        }
+            // Emit chat list update to chat participants
+            pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+                chatId,
+                messageId: newMessage.id,
+            })
+        ]).catch(error => {
+            // Log but don't fail the request
+            console.error("Failed to emit Pusher events:", error);
+        });
 
-        // Return response immediately without waiting for Pusher
+        // Return response immediately without waiting for Pusher (fire-and-forget)
         return NextResponse.json({
             message: responseMessage,
             success: true

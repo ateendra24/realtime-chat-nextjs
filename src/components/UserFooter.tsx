@@ -268,10 +268,10 @@ function UserFooter() {
                             <ChevronDown className="h-4 w-4 text-muted-foreground mr-2" />
                         </div>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56">
+                    <DropdownMenuContent className="w-56 rounded-2xl bg-card">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className='cursor-pointer' onClick={() => {
+                        <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                             setShowProfileEdit(true);
                             // Reset form data when opening
                             setEditedName(user?.fullName || '');
@@ -283,7 +283,7 @@ function UserFooter() {
                             <span>Edit Profile</span>
                         </DropdownMenuItem>
                         {hasPassword && (
-                            <DropdownMenuItem className='cursor-pointer' onClick={() => {
+                            <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                                 setShowPasswordChange(true);
                                 setPasswordData({
                                     currentPassword: '',
@@ -301,7 +301,7 @@ function UserFooter() {
                                 <span>Change Password</span>
                             </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem className='cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!'>
+                        <DropdownMenuItem className='cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!  rounded-xl'>
                             <LogOut className="mr-2 h-4 w-4 hover:text-destructive-foreground!" />
                             <SignOutButton>
                                 <div className="w-full text-left">
@@ -315,7 +315,7 @@ function UserFooter() {
 
             {/* Profile Edit Dialog */}
             <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>Edit Profile</DialogTitle>
                         <DialogDescription>
@@ -359,7 +359,7 @@ function UserFooter() {
                                     variant="outline"
                                     size="sm"
                                     disabled={uploadingAvatar}
-                                    className="relative overflow-hidden"
+                                    className="relative overflow-hidden cursor-pointer"
                                 >
                                     {uploadingAvatar ? (
                                         <span className="flex items-center gap-2">
@@ -443,6 +443,7 @@ function UserFooter() {
                         <div className="flex justify-end space-x-2">
                             <Button
                                 variant="outline"
+                                className="cursor-pointer"
                                 onClick={() => {
                                     setShowProfileEdit(false);
                                     setErrors({});
@@ -456,6 +457,7 @@ function UserFooter() {
                             </Button>
                             <Button
                                 onClick={handleSaveProfile}
+                                className="cursor-pointer"
                                 disabled={saving || uploadingAvatar || !editedUsername.trim()}
                             >
                                 {saving ? (
@@ -477,7 +479,7 @@ function UserFooter() {
 
             {/* Password Change Dialog */}
             <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[425px] rounded-2xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Lock className="h-5 w-5" />
@@ -594,6 +596,7 @@ function UserFooter() {
                         <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 pt-4">
                             <Button
                                 variant="outline"
+                                className="cursor-pointer"
                                 onClick={() => {
                                     setShowPasswordChange(false);
                                     setPasswordErrors({});
@@ -614,6 +617,7 @@ function UserFooter() {
                             </Button>
                             <Button
                                 onClick={handlePasswordChange}
+                                className="cursor-pointer"
                                 disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                             >
                                 {changingPassword ? (

@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, UserPlus, MessageSquare, UserX } from "lucide-react";
+import { Search, UserX, Loader2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -25,6 +24,7 @@ export function UserSearch({ onUserSelect, selectedUsers = [], placeholder = "Se
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [creatingChatFor, setCreatingChatFor] = useState<string | null>(null);
 
   useEffect(() => {
     const searchUsers = async () => {
@@ -49,10 +49,23 @@ export function UserSearch({ onUserSelect, selectedUsers = [], placeholder = "Se
     return () => clearTimeout(debounceTimer);
   }, [query]);
 
-  const handleUserSelect = (user: User) => {
-    onUserSelect?.(user);
-    setQuery("");
-    setUsers([]);
+  const handleUserClick = async (user: User) => {
+    if (creatingChatFor) return; // Prevent multiple simultaneous requests
+
+    setCreatingChatFor(user.id);
+    try {
+      // If showDirectChatOption is true, start a direct chat
+      if (showDirectChatOption) {
+        await onDirectChat?.(user);
+      } else {
+        // Otherwise, use the onUserSelect callback (for group creation)
+        onUserSelect?.(user);
+      }
+      setQuery("");
+      setUsers([]);
+    } finally {
+      setCreatingChatFor(null);
+    }
   };
 
   const isUserSelected = (userId: string) => {
@@ -94,12 +107,10 @@ export function UserSearch({ onUserSelect, selectedUsers = [], placeholder = "Se
             users.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-3 hover:bg-muted"
+                className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors"
+                onClick={() => handleUserClick(user)}
               >
-                <div
-                  className="flex items-center space-x-3 flex-1 cursor-pointer"
-                  onClick={() => handleUserSelect(user)}
-                >
+                <div className="flex items-center space-x-3 flex-1">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback>
                       {user.fullName?.[0] || user.username[0]}
@@ -112,23 +123,12 @@ export function UserSearch({ onUserSelect, selectedUsers = [], placeholder = "Se
                     <p className="text-xs text-muted-foreground">@{user.username}</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  {showDirectChatOption && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDirectChat?.(user)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {isUserSelected(user.id) ? (
-                    <span className="text-green-600 text-xs">Selected</span>
-                  ) : (
-                    <UserPlus className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </div>
+                {creatingChatFor === user.id && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+                {!showDirectChatOption && isUserSelected(user.id) && (
+                  <span className="text-green-600 text-xs font-medium">Selected</span>
+                )}
               </div>
             ))
           )}

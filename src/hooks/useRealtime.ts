@@ -26,12 +26,11 @@ class PusherRealtimeClient implements RealtimeClient {
         cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
         forceTLS: true,
         enabledTransports: ['ws', 'wss'],
-        // Production-optimized settings for Vercel
+        // Production-optimized settings
         activityTimeout: 30000, // Detect dead connections after 30s
         pongTimeout: 10000, // Wait 10s for pong response
         unavailableTimeout: 5000, // Try reconnecting after 5s if unavailable
-        // Enable automatic reconnection with exponential backoff
-        disableStats: false, // Keep stats for debugging
+        disableStats: true, // Disable stats in production
       });
 
       this.pusher.connection.bind('connected', () => {

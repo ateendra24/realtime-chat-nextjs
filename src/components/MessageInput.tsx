@@ -154,10 +154,10 @@ export function MessageInput({
     if (!selectedChat) return null;
 
     return (
-        <div className="flex flex-col space-y-2">
+        <div className="flex flex-col space-y-2 absolute bottom-0 left-0 w-full">
             {/* Image Preview */}
             {selectedImage && imagePreview && (
-                <div className="flex items-center p-3 bg-muted rounded-lg mx-3">
+                <div className="flex items-center p-3 bg-muted/40 backdrop-blur-md rounded-lg mx-3">
                     <div className="relative">
                         <img
                             src={imagePreview}
@@ -197,7 +197,7 @@ export function MessageInput({
             )}
 
             {/* Input Row */}
-            <div className="relative flex items-center px-3 py-2 border rounded-4xl mb-2 space-x-2 backdrop-blur-sm bg-background/95">
+            <div className="relative flex items-center px-3 py-2 space-x-2">
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -210,9 +210,9 @@ export function MessageInput({
 
                 {/* Image Upload Button */}
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
+                    className='rounded-full cursor-pointer bg-input/30! w-10 h-10'
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     title="Upload image"
@@ -223,9 +223,9 @@ export function MessageInput({
                 {/* Emoji Picker Button */}
                 <Button
                     ref={buttonRef}
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className='rounded-full cursor-pointer hover:bg-primary/10 hover:scale-110 transition-all'
+                    className='rounded-full cursor-pointer bg-input/30! w-10 h-10'
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                     disabled={uploading}
                 >
@@ -250,7 +250,7 @@ export function MessageInput({
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 h-10 rounded-full bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
+                    className="flex-1 h-10 rounded-full bg focus-visible:ring-0 transition-all shadow-none border-secondary-foreground/10"
                     disabled={!selectedChat || uploading}
                 />
 
@@ -258,7 +258,7 @@ export function MessageInput({
                 <Button
                     onClick={handleSend}
                     disabled={(!input.trim() && !selectedImage) || !selectedChat || uploading}
-                    className='rounded-full w-10 h-10 p-0 hover:scale-110 transition-all disabled:hover:scale-100'
+                    className='rounded-full w-10 h-10 p-0 hover:scale-105 transition-all disabled:hover:scale-100'
                 >
                     {uploading ? (
                         <Loader2 className="h-5 w-5 animate-spin" />

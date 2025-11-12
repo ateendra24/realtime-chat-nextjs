@@ -7,6 +7,7 @@ import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
 import type { Message, Chat, MessagesProps } from '@/types/global';
+import { ProgressiveBlur } from './ui/progressive-blur';
 
 // Helper function to format date separator
 const formatDateSeparator = (date: moment.Moment) => {
@@ -47,7 +48,7 @@ export function Messages({
         if (searchResults.length > 0 && searchResults[currentSearchResultIndex]) {
             const currentResultMessage = searchResults[currentSearchResultIndex];
             const messageElement = messageRefs.current[currentResultMessage.id];
-            
+
             if (messageElement) {
                 messageElement.scrollIntoView({
                     behavior: 'smooth',
@@ -58,8 +59,8 @@ export function Messages({
     }, [currentSearchResultIndex, searchResults]);
 
     return (
-        <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
-            <div className="p-4 h-full">
+        <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative mask-to-top-bottom backdrop-blur-md ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
+            <div className={`p-4 ${selectedChat && 'pt-20 pb-24'} h-full`}>
                 {!selectedChat ? (
                     <div className="h-[85vh] flex flex-col items-center justify-center text-center text-muted-foreground py-8">
                         <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-40 animate-pulse" />
@@ -229,7 +230,7 @@ export function Messages({
                                             )}
 
                                             {shouldShowTimestamp && (
-                                                <span className={`text-[10px] text-muted-foreground mt-1 block ${isCurrentUser ? 'text-right text-white/70' : 'text-left'}`}>
+                                                <span className={`text-[10px] text-muted-foreground/70 mt-1 block ${isCurrentUser ? 'text-right' : 'text-left'}`}>
                                                     {formattedTime}
                                                 </span>
                                             )}
@@ -243,6 +244,8 @@ export function Messages({
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />
             </div>
+            <ProgressiveBlur height="8%" position="bottom" />
+            <ProgressiveBlur height="8%" position="top" />
         </ScrollArea>
     );
 }

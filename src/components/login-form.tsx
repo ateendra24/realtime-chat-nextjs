@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { siteConfig } from "@/config/siteConfig";
+import { OAuthStrategy } from '@clerk/types'
 
 export function LoginForm({
     className,
@@ -22,16 +24,6 @@ export function LoginForm({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const router = useRouter();
-
-    // Ensure CAPTCHA element exists for Clerk
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !document.getElementById('clerk-captcha')) {
-            const captchaDiv = document.createElement('div');
-            captchaDiv.id = 'clerk-captcha';
-            captchaDiv.style.display = 'none';
-            document.body.appendChild(captchaDiv);
-        }
-    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,41 +70,36 @@ export function LoginForm({
         }
     };
 
-    const handleGoogleSignIn = async () => {
-        if (!isLoaded) {
-            return;
-        }
-
+    if (!signIn) return null
+    const signInWith = (strategy: OAuthStrategy) => {
         setIsLoading(true);
         setError("");
 
-        try {
-            await signIn.authenticateWithRedirect({
-                strategy: "oauth_google",
-                redirectUrl: window.location.origin + "/sso-callback",
-                redirectUrlComplete: window.location.origin + "/chat",
-            });
-        } catch (err: unknown) {
-            console.error("Google sign in error:", err);
-            if (err && typeof err === 'object' && 'errors' in err) {
-                const errors = (err as { errors: Array<{ message: string }> }).errors;
-                setError(errors?.[0]?.message || "An error occurred during Google sign in");
-            } else {
-                setError("An error occurred during Google sign in");
-            }
-            setIsLoading(false);
-        }
-    };
+        return signIn
+            .authenticateWithRedirect({
+                strategy,
+                redirectUrl: '/sign-in/sso-callback',
+                redirectUrlComplete: '/chat',
+            })
+            .catch((err) => {
+                console.error('SSO authentication error:', err);
+                const error = err as { errors?: Array<{ message: string }> };
+                if (error?.errors) {
+                    setError(error.errors[0]?.message || "An error occurred during Google sign in");
+                } else {
+                    setError("An error occurred during Google sign in");
+                }
+                setIsLoading(false);
+            })
+    }
+
 
     return (
         <div className={cn("flex flex-col gap-6", className)} {...props}>
             <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col items-center gap-2">
-                        <div className="flex size-8 items-center justify-center rounded-md">
-                            <GalleryVerticalEnd className="size-6" />
-                        </div>
-                        <h1 className="text-xl font-bold">Welcome to Chat.</h1>
+                        <h1 className="text-xl font-bold">Welcome to {siteConfig.name}</h1>
                         <div className="text-center text-sm">
                             Don&apos;t have an account?{" "}
                             <Link href="/sign-up" className="underline underline-offset-4">
@@ -174,7 +161,7 @@ export function LoginForm({
                                 </Button>
                             </div>
                         </div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
+                        <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -195,8 +182,8 @@ export function LoginForm({
                     <Button
                         variant="outline"
                         type="button"
-                        className="w-full"
-                        onClick={handleGoogleSignIn}
+                        className="w-full cursor-pointer"
+                        onClick={() => signInWith('oauth_google')}
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -211,6 +198,7 @@ export function LoginForm({
                         )}
                         Continue with Google
                     </Button>
+
                 </div>
             </form>
             <div className="text-muted-foreground text-center text-xs text-balance">
@@ -224,6 +212,9 @@ export function LoginForm({
                 </a>
                 .
             </div>
+
+            <div id="clerk-captcha" data-cl-theme="dark" data-cl-size="flexible" data-cl-language="es-ES" />
+
         </div>
     );
 }

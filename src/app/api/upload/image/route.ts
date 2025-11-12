@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { put } from '@vercel/blob';
 import { db } from '@/db';
-import { chatParticipants, messages, messageAttachments, users } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { chatParticipants, messages, messageAttachments, users, chats } from '@/db/schema';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { pusher, CHANNELS, EVENTS } from '@/lib/pusher';
 
@@ -89,10 +89,25 @@ export async function POST(request: NextRequest) {
             avatarUrl: users.avatarUrl,
         }).from(users).where(eq(users.id, userId)).limit(1);
 
+        // Update chat metadata with last message info
+        const lastMessageText = messageContent.trim() || 'Image';
+        await db.update(chats)
+            .set({
+                lastMessageId: newMessage.id,
+                lastMessageAt: newMessage.createdAt,
+                lastMessageContent: lastMessageText,
+                lastMessageUserId: userId,
+                lastMessageUserName: userInfo?.fullName || userInfo?.username || 'Unknown User',
+                messageCount: sql`${chats.messageCount} + 1`,
+                updatedAt: new Date(),
+            })
+            .where(eq(chats.id, chatId));
+
         // Broadcast the message via Pusher
         const messageToSend = {
             id: newMessage.id,
             user: userInfo?.fullName || userInfo?.username || 'Unknown User',
+            username: userInfo?.username,
             userId: newMessage.userId,
             content: newMessage.content,
             type: newMessage.type,
@@ -104,22 +119,35 @@ export async function POST(request: NextRequest) {
                 fileName: file.name,
                 fileSize: file.size,
                 mimeType: file.type,
+                blobUrl: blob.url,
             }
         };
 
         try {
-            console.log('Broadcasting message via Pusher:', {
-                channel: CHANNELS.chat(chatId),
-                event: EVENTS.message,
-                data: messageToSend
-            });
+            await Promise.race([
+                Promise.all([
+                    // Emit message to chat channel
+                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageToSend),
 
-            await pusher.trigger(
-                CHANNELS.chat(chatId),
-                EVENTS.message,
-                messageToSend
-            );
-            console.log('Image message broadcasted via Pusher successfully');
+                    // Emit global chat list update
+                    pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+                        chatId,
+                        messageId: newMessage.id,
+                        message: lastMessageText,
+                        sender: userId,
+                    }),
+
+                    // Emit chat list update to chat participants
+                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+                        chatId,
+                        messageId: newMessage.id,
+                    })
+                ]),
+                // Timeout after 3 seconds to prevent hanging
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
+                )
+            ]);
         } catch (pusherError) {
             console.error('Failed to broadcast message via Pusher:', pusherError);
             // Don't fail the request if Pusher fails

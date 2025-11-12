@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ChatList } from "@/components/ChatList";
 import UserFooter from "@/components/UserFooter";
-import { AuthPage } from "@/components/AuthPage";
+import { LoadingPage } from "@/components/LoadingPage";
 import { ChatHeader } from "@/components/ChatHeader";
 import { Messages } from "@/components/Messages";
 import { MessageInput } from "@/components/MessageInput";
@@ -82,7 +82,7 @@ export default function ChatPage() {
     }, [setSelectedChat]);
 
     if (!isLoaded) {
-        return <AuthPage type="loading" />;
+        return <LoadingPage />;
     }
 
     return (
@@ -104,7 +104,7 @@ export default function ChatPage() {
                     </SidebarFooter>
                 </Sidebar>
 
-                <SidebarInset className="flex-1 bg-transparent! relative">
+                <SidebarInset className="flex-1 bg-transparent! relative md:my-2 md:border rounded-3xl">
                     <ChatHeader
                         selectedChat={selectedChat}
                         onLeaveGroup={handleLeaveGroup}

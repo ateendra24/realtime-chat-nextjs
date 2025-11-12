@@ -87,6 +87,7 @@ export interface Chat {
     content: string;
     createdAt: Date;
     userName: string;
+    userId?: string;
   };
 }
 

@@ -4,8 +4,9 @@ A modern, full-featured realtime chat application built with Next.js 15, TypeScr
 
 ## Screenshot
 
-![Screenshot](./public//s1.png)
-![Screenshot](./public//s2.png)
+![Screenshot](./public/s0.png)
+![Screenshot](./public/s1.png)
+![Screenshot](./public/s2.png)
 
 ## Architecture Diagram
 

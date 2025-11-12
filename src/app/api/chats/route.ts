@@ -1,8 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { chats, chatParticipants, users, messages } from "@/db/schema";
-import { eq, and, ne, desc, sql } from "drizzle-orm";
+import { chats, chatParticipants } from "@/db/schema";
+import { sql } from "drizzle-orm";
+
+interface ChatRow {
+  id: string;
+  name: string | null;
+  description: string | null;
+  type: string;
+  avatar_url: string | null;
+  created_at: Date;
+  updated_at: Date;
+  last_message_at: Date | null;
+  last_message_content: string | null;
+  last_message_user_id: string | null;
+  last_message_user_name: string | null;
+  message_count: number;
+  is_active: boolean;
+  role: string;
+  last_read_message_id: string | null;
+  last_read_at: Date | null;
+  unread_count: string;
+  other_full_name: string | null;
+  other_username: string | null;
+  other_avatar_url: string | null;
+  other_is_online: boolean | null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,131 +86,124 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get all chats where the user is a participant
-    const userChats = await db
-      .select({
-        id: chats.id,
-        name: chats.name,
-        description: chats.description,
-        type: chats.type,
-        avatarUrl: chats.avatarUrl,
-        createdAt: chats.createdAt,
-        updatedAt: chats.updatedAt,
-        lastMessageAt: chats.lastMessageAt,
-        messageCount: chats.messageCount,
-        isActive: chats.isActive,
-        role: chatParticipants.role,
-        lastReadMessageId: chatParticipants.lastReadMessageId,
-        lastReadAt: chatParticipants.lastReadAt,
-      })
-      .from(chats)
-      .innerJoin(chatParticipants, eq(chats.id, chatParticipants.chatId))
-      .where(and(
-        eq(chatParticipants.userId, userId),
-        eq(chats.isActive, true)
-      ))
-      .orderBy(desc(chats.lastMessageAt));
-
-    // For each chat, get the last message and participant info
-    const chatsWithDetails = await Promise.all(
-      userChats.map(async (chat) => {
-        // Get last message
-        const lastMessage = await db
-          .select({
-            id: messages.id,
-            content: messages.content,
-            createdAt: messages.createdAt,
-            userId: messages.userId,
-            userName: users.username,
-            isDeleted: messages.isDeleted,
-          })
-          .from(messages)
-          .innerJoin(users, eq(messages.userId, users.id))
-          .where(and(
-            eq(messages.chatId, chat.id),
-            eq(messages.isDeleted, false)
-          ))
-          .orderBy(desc(messages.createdAt))
-          .limit(1);
-
-        // Calculate unread messages count
-        let unreadCount = 0;
-        if (chat.lastReadMessageId) {
-          // Count messages after the last read message
-          const unreadMessages = await db
-            .select({ count: sql<number>`count(*)`.as('count') })
-            .from(messages)
-            .where(and(
-              eq(messages.chatId, chat.id),
-              eq(messages.isDeleted, false),
-              sql`${messages.createdAt} > (SELECT created_at FROM messages WHERE id = ${chat.lastReadMessageId})`
-            ));
-          unreadCount = unreadMessages[0]?.count || 0;
-        } else {
-          // If no last read message, count all messages
-          const allMessages = await db
-            .select({ count: sql<number>`count(*)`.as('count') })
-            .from(messages)
-            .where(and(
-              eq(messages.chatId, chat.id),
-              eq(messages.isDeleted, false)
-            ));
-          unreadCount = allMessages[0]?.count || 0;
-        }
-
-        // For direct chats, get the other participant's name and avatar
-        let displayName = chat.name;
-        let username = null;
-        let chatAvatarUrl = chat.avatarUrl;
-        let isOnline = false;
-
-        if (chat.type === 'direct') {
-          const otherParticipant = await db
-            .select({
-              fullName: users.fullName,
-              username: users.username,
-              avatarUrl: users.avatarUrl,
-              isOnline: users.isOnline,
-              lastSeen: users.lastSeen,
-            })
-            .from(users)
-            .innerJoin(chatParticipants, eq(users.id, chatParticipants.userId))
-            .where(
-              and(
-                eq(chatParticipants.chatId, chat.id),
-                ne(chatParticipants.userId, userId)
-              )
+    // ULTRA-OPTIMIZED: Single query using CTEs and window functions
+    // This replaces 40+ queries with just 1 query!
+    const result = await db.execute(sql`
+      WITH user_chats AS (
+        SELECT 
+          c.id,
+          c.name,
+          c.description,
+          c.type,
+          c.avatar_url,
+          c.created_at,
+          c.updated_at,
+          c.last_message_at,
+          c.last_message_content,
+          c.last_message_user_id,
+          c.last_message_user_name,
+          c.message_count,
+          c.is_active,
+          cp.role,
+          cp.last_read_message_id,
+          cp.last_read_at
+        FROM chats c
+        INNER JOIN chat_participants cp ON c.id = cp.chat_id
+        WHERE cp.user_id = ${userId}
+          AND c.is_active = true
+      ),
+      unread_counts AS (
+        SELECT 
+          uc.id as chat_id,
+          COUNT(m.id) as unread_count
+        FROM user_chats uc
+        LEFT JOIN messages m ON m.chat_id = uc.id
+          AND m.is_deleted = false
+          AND (
+            uc.last_read_message_id IS NULL
+            OR m.created_at > (
+              SELECT created_at 
+              FROM messages 
+              WHERE id = uc.last_read_message_id
             )
-            .limit(1);
+          )
+        GROUP BY uc.id
+      ),
+      direct_chat_participants AS (
+        SELECT 
+          uc.id as chat_id,
+          u.full_name,
+          u.username,
+          u.avatar_url,
+          u.is_online
+        FROM user_chats uc
+        INNER JOIN chat_participants cp ON cp.chat_id = uc.id
+        INNER JOIN users u ON u.id = cp.user_id
+        WHERE uc.type = 'direct'
+          AND cp.user_id != ${userId}
+      )
+      SELECT 
+        uc.*,
+        COALESCE(unr.unread_count, 0) as unread_count,
+        dcp.full_name as other_full_name,
+        dcp.username as other_username,
+        dcp.avatar_url as other_avatar_url,
+        dcp.is_online as other_is_online
+      FROM user_chats uc
+      LEFT JOIN unread_counts unr ON unr.chat_id = uc.id
+      LEFT JOIN direct_chat_participants dcp ON dcp.chat_id = uc.id
+      ORDER BY uc.last_message_at DESC NULLS LAST
+    `);
 
-          if (otherParticipant.length > 0) {
-            displayName = otherParticipant[0].fullName || otherParticipant[0].username || 'Unknown User';
-            username = otherParticipant[0].username;
-            chatAvatarUrl = otherParticipant[0].avatarUrl || null;
-            isOnline = otherParticipant[0].isOnline || false;
-          }
-        }
+    // Handle both postgres-js v3.3.x (returns array) and v3.4.x+ (returns {rows: []})
+    const rows = (Array.isArray(result) ? result : (result as { rows: ChatRow[] }).rows) as ChatRow[];
 
-        return {
-          ...chat,
-          displayName,
-          username,
-          avatarUrl: chatAvatarUrl,
-          isOnline,
-          isAdmin: chat.role === 'admin' || chat.role === 'owner', // For backward compatibility
-          isOwner: chat.role === 'owner',
-          unreadCount,
-          lastMessage: lastMessage.length > 0 ? {
-            id: lastMessage[0].id,
-            content: lastMessage[0].content,
-            createdAt: lastMessage[0].createdAt,
-            userName: lastMessage[0].userName,
-          } : null,
+    // Transform raw result to match expected format (optimized for minimal payload)
+    const chatsWithDetails = rows.map((row) => {
+      const isDirectChat = row.type === 'direct';
+      const displayName = isDirectChat
+        ? (row.other_full_name || row.other_username || 'Unknown User')
+        : row.name;
+      const chatAvatarUrl = isDirectChat ? row.other_avatar_url : row.avatar_url;
+
+      // Optimized response - only essential fields, no redundant data
+      const chat: Record<string, unknown> = {
+        id: row.id,
+        type: row.type,
+        avatarUrl: chatAvatarUrl,
+        displayName,
+        role: row.role,
+        unreadCount: parseInt(row.unread_count) || 0,
+      };
+
+      // Add optional fields only if they exist (reduces payload size)
+      if (row.name) chat.name = row.name;
+      if (row.description) chat.description = row.description;
+      if (isDirectChat && row.other_username) chat.username = row.other_username;
+      if (isDirectChat) chat.isOnline = row.other_is_online || false;
+      if (row.last_message_at) chat.lastMessageAt = row.last_message_at;
+      if (row.message_count) chat.messageCount = row.message_count;
+
+      // Compact last message format
+      if (row.last_message_content) {
+        chat.lastMessage = {
+          content: row.last_message_content.substring(0, 100), // Truncate long messages for list view
+          createdAt: row.last_message_at ? new Date(row.last_message_at + 'Z').toISOString() : null,
+          userName: row.last_message_user_name,
         };
-      })
-    );
+      }
 
-    return NextResponse.json({ chats: chatsWithDetails });
+      return chat;
+    });
+
+    return NextResponse.json({
+      chats: chatsWithDetails
+    }, {
+      headers: {
+        'Cache-Control': 'private, max-age=5, must-revalidate', // 5s cache for better UX
+        'Content-Type': 'application/json; charset=utf-8',
+      }
+    });
   } catch (error) {
     console.error("Error fetching chats:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

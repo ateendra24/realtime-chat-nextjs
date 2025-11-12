@@ -391,7 +391,7 @@ export function GroupInfoSheet({
                             </div>
                         </div>
 
-                        <ScrollArea className="space-y-2 max-h-48 overflow-y-auto">
+                        <ScrollArea className="space-y-2 h-38">
                             {members.length === 0 ? (
                                 <div className="text-center text-muted-foreground py-8">
                                     <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
