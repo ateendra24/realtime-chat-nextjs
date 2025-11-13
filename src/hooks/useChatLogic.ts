@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
 import type { Message, Chat, GroupMember, User } from '@/types/global';
+import { useIsMobile } from './use-mobile';
+import { useSidebar } from '@/components/ui/sidebar';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();

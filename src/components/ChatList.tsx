@@ -13,6 +13,8 @@ import { AnimatedListItem } from "./magicui/animated-list";
 import type { Chat, ChatListProps, Message } from '@/types/global';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ScrollArea } from "./ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "./ui/sidebar";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -21,6 +23,8 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   const [searchQuery, setSearchQuery] = useState('');
   const { client: realtimeClient } = useRealtime();
   const { setTheme, theme } = useTheme();
+  const isMobile = useIsMobile();
+  const { toggleSidebar } = useSidebar();
 
   // Debounce search query to reduce filtering operations
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -421,7 +425,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                   <AnimatedListItem key={chat.id}>
                     <div
                       key={chat.id}
-                      onClick={() => onChatSelect?.(chat)}
+                      onClick={() => { if (isMobile) toggleSidebar(); onChatSelect?.(chat); }}
                       className={`flex items-center mb-1 space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
                         ? '!bg-border'
                         : chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id

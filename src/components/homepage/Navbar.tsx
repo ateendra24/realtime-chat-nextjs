@@ -26,7 +26,7 @@ function Navbar() {
                         {siteConfig.name}
                     </span>
                 </div>
-                <div className="hidden md:flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
                     {mounted ? (
                         theme === "light" ? (
                             <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>

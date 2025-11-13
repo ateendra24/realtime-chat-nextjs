@@ -214,15 +214,16 @@ export function Messages({
                                                         return (
                                                             <div
                                                                 key={reaction?.id || `${reaction?.emoji || 'emoji'}-${reaction?.count || 0}-${index}`}
-                                                                className={`flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs border cursor-pointer transition-all hover:scale-110 shadow-sm ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
-                                                                    ? 'bg-primary/25 border-primary text-black dark:text-white font-semibold'
+                                                                className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs border cursor-pointer transition-all hover:scale-105 shadow-sm ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
+                                                                    ? 'bg-primary/25 border-primary text-black dark:text-white font-medium'
                                                                     : 'bg-muted border-muted-foreground/20 hover:bg-muted/80'
                                                                     }`}
                                                                 title={`${reaction?.count || 0} reaction${(reaction?.count || 0) > 1 ? 's' : ''}`}
                                                                 onClick={() => reaction?.emoji && onReaction?.(message.id, reaction.emoji)}
                                                             >
-                                                                <span>{reaction?.emoji || '?'}</span>
-                                                                <span className="font-medium">{reaction?.count || 0}</span>
+                                                                <span>{reaction?.emoji || '?'}
+                                                                    {reaction?.count > 1 ? reaction.count : null}
+                                                                </span>
                                                             </div>
                                                         );
                                                     })}
