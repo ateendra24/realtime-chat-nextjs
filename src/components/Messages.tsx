@@ -137,7 +137,7 @@ export function Messages({
                                     {/* Message */}
                                     <div
                                         ref={el => { messageRefs.current[message.id] = el; }}
-                                        className={`group flex items-start space-x-3 ${isSameUserAsPrev ? 'mb-1' : 'mb-3'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''} ${isSearchResult && 'bg-primary/10'}`}
+                                        className={`group flex items-start space-x-2 ${isSameUserAsPrev ? 'mb-1' : 'mb-2'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''} ${isSearchResult && 'bg-primary/10'}`}
                                         data-message-id={message.id}
                                     >
                                         {shouldShowAvatar ? (
@@ -151,7 +151,7 @@ export function Messages({
 
                                         <div className={`flex-1 max-w-xs ${isCurrentUser ? 'text-right' : ''}`}>
                                             {shouldShowAvatar && !isCurrentUser && (
-                                                <p className="font-semibold text-sm mb-1.5 text-foreground/90">{message.user || 'Unknown User'}</p>
+                                                <p className="font-semibold text-sm mb-1 text-foreground/90">{message.user.split(' ')[0] || 'Unknown User'}</p>
                                             )}
                                             <div className={`relative w-fit ${isCurrentUser && 'ml-auto'} group`}>
                                                 {/* Message Content */}
