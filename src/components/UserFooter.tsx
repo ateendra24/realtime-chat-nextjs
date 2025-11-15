@@ -31,18 +31,15 @@ function UserFooter() {
     const [saving, setSaving] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
     const [passwordData, setPasswordData] = useState({
-        currentPassword: '',
         newPassword: '',
         confirmPassword: ''
     });
     const [passwordErrors, setPasswordErrors] = useState<{
-        current?: string;
         new?: string;
         confirm?: string;
         general?: string
     }>({});
     const [showPasswords, setShowPasswords] = useState({
-        current: false,
         new: false,
         confirm: false
     });
@@ -182,11 +179,6 @@ function UserFooter() {
         setPasswordErrors({});
 
         // Validate passwords
-        if (!passwordData.currentPassword) {
-            setPasswordErrors({ current: "Current password is required" });
-            return;
-        }
-
         if (!passwordData.newPassword) {
             setPasswordErrors({ new: "New password is required" });
             return;
@@ -211,7 +203,6 @@ function UserFooter() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    currentPassword: passwordData.currentPassword,
                     newPassword: passwordData.newPassword,
                 }),
             });
@@ -219,11 +210,7 @@ function UserFooter() {
             const data = await response.json();
 
             if (!response.ok) {
-                if (response.status === 401) {
-                    setPasswordErrors({ current: "Current password is incorrect" });
-                } else {
-                    setPasswordErrors({ general: data.error || "Failed to change password" });
-                }
+                setPasswordErrors({ general: data.error || "Failed to change password" });
                 return;
             }
 
@@ -231,12 +218,10 @@ function UserFooter() {
             toast.success("Password changed successfully!");
             setShowPasswordChange(false);
             setPasswordData({
-                currentPassword: '',
                 newPassword: '',
                 confirmPassword: ''
             });
             setShowPasswords({
-                current: false,
                 new: false,
                 confirm: false
             });
@@ -286,13 +271,11 @@ function UserFooter() {
                             <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                                 setShowPasswordChange(true);
                                 setPasswordData({
-                                    currentPassword: '',
                                     newPassword: '',
                                     confirmPassword: ''
                                 });
                                 setPasswordErrors({});
                                 setShowPasswords({
-                                    current: false,
                                     new: false,
                                     confirm: false
                                 });
@@ -491,37 +474,6 @@ function UserFooter() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label htmlFor="currentPassword">Current Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="currentPassword"
-                                    type={showPasswords.current ? "text" : "password"}
-                                    value={passwordData.currentPassword}
-                                    onChange={(e) => {
-                                        setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }));
-                                        if (passwordErrors.current) {
-                                            setPasswordErrors(prev => ({ ...prev, current: undefined }));
-                                        }
-                                    }}
-                                    placeholder="Enter your current password"
-                                    className={passwordErrors.current ? "border-red-500 pr-10" : "pr-10"}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </button>
-                            </div>
-                            {passwordErrors.current && (
-                                <p className="text-xs text-red-500 flex items-center gap-1">
-                                    <XCircle className="h-3 w-3" />
-                                    {passwordErrors.current}
-                                </p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
                             <Label htmlFor="newPassword">New Password</Label>
                             <div className="relative">
                                 <Input
@@ -601,12 +553,10 @@ function UserFooter() {
                                     setShowPasswordChange(false);
                                     setPasswordErrors({});
                                     setPasswordData({
-                                        currentPassword: '',
                                         newPassword: '',
                                         confirmPassword: ''
                                     });
                                     setShowPasswords({
-                                        current: false,
                                         new: false,
                                         confirm: false
                                     });
@@ -618,7 +568,7 @@ function UserFooter() {
                             <Button
                                 onClick={handlePasswordChange}
                                 className="cursor-pointer"
-                                disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                                disabled={changingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                             >
                                 {changingPassword ? (
                                     <span className="flex items-center gap-2">

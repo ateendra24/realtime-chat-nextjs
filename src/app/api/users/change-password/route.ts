@@ -9,10 +9,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { currentPassword, newPassword } = await request.json();
+        const { newPassword } = await request.json();
 
-        if (!currentPassword || !newPassword) {
-            return NextResponse.json({ error: 'Current password and new password are required' }, { status: 400 });
+        if (!newPassword) {
+            return NextResponse.json({ error: 'New password is required' }, { status: 400 });
         }
 
         if (newPassword.length < 8) {
