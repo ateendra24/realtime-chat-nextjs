@@ -202,6 +202,7 @@ export function Messages({
                                                             onReaction={onReaction || (() => { })}
                                                             onEdit={onEditMessage}
                                                             onDelete={onDeleteMessage}
+                                                            messageTimestamp={formattedTime}
                                                         />
                                                     </div>
                                                 )}

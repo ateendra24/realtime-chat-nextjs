@@ -238,7 +238,7 @@ export function GroupInfoSheet({
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="space-y-4 px-4 pb-4 overflow-y-auto">{/* Group Avatar and Basic Info */}
+                <div className="px-4 flex flex-col gap-4 pb-4 overflow-y-auto h-full">{/* Group Avatar and Basic Info */}
                     <div className="flex flex-col items-center space-y-4">
                         <div className="relative">
                             <Avatar className="w-24 h-24">
@@ -370,7 +370,7 @@ export function GroupInfoSheet({
                     </div>
 
                     {/* Members List */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 h-[100px] flex-1">
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium">Members</label>
                             <div className="flex items-center space-x-2">
@@ -391,7 +391,7 @@ export function GroupInfoSheet({
                             </div>
                         </div>
 
-                        <ScrollArea className="space-y-2 h-38">
+                        <ScrollArea className="space-y-2 h-11/12">
                             {members.length === 0 ? (
                                 <div className="text-center text-muted-foreground py-8">
                                     <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />

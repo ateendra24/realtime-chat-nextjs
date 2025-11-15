@@ -6,9 +6,10 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash } from "lucide-react";
+import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash, Clock } from "lucide-react";
 
 interface MessageActionsProps {
     messageId: string;
@@ -16,6 +17,7 @@ interface MessageActionsProps {
     onReaction: (messageId: string, emoji: string) => void;
     onEdit?: (messageId: string) => void;
     onDelete?: (messageId: string) => void;
+    messageTimestamp: string;
 }
 
 const COMMON_REACTIONS = [
@@ -30,7 +32,8 @@ export function MessageActions({
     isOwnMessage,
     onReaction,
     onEdit,
-    onDelete
+    onDelete,
+    messageTimestamp
 }: MessageActionsProps) {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -97,6 +100,10 @@ export function MessageActions({
                         </DropdownMenuItem>
                     </>
                 )}
+
+                <DropdownMenuLabel className="flex items-center gap-2 opacity-80 float-end text-xs">
+                    {messageTimestamp}
+                </DropdownMenuLabel>
             </DropdownMenuContent>
         </DropdownMenu>
     );
