@@ -1,10 +1,16 @@
+import { auth } from "@clerk/nextjs/server";
+
 export const siteConfig = {
     name: "ChatFlow",
     description: "A real-time chat application",
-    url: "https://chatflow.com",
-    ogImage: "https://chatflow.com/og-image.png",
+    url: "https://chat-flow-live.vercel.app/",
     links: {
         twitter: "https://twitter.com/ateendra24",
         github: "https://github.com/ateendra24/realtime-chat-nextjs",
     },
+    author: {
+        name: "Ateendra Pratap Solanki",
+        twitter: "@ateendra24",
+        url: "https://ateendra.vercel.app"
+    }
 };
