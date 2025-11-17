@@ -127,10 +127,10 @@ export async function POST(request: NextRequest) {
             await Promise.race([
                 Promise.all([
                     // Emit message to chat channel
-                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageToSend),
+                    await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageToSend),
 
                     // Emit global chat list update
-                    pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+                    await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
                         chatId,
                         messageId: newMessage.id,
                         message: lastMessageText,
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
                     }),
 
                     // Emit chat list update to chat participants
-                    pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+                    await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
                         chatId,
                         messageId: newMessage.id,
                     })

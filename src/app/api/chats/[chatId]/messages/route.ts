@@ -305,10 +305,10 @@ export async function POST(
         // Don't await Pusher to return response immediately (100-200ms faster)
         Promise.all([
             // Emit message to chat channel
-            pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
+            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
 
             // Emit global chat list update
-            pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+            await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
                 message: newMessage.content,
@@ -316,7 +316,7 @@ export async function POST(
             }),
 
             // Emit chat list update to chat participants
-            pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
             })

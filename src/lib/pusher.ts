@@ -37,7 +37,7 @@ export async function broadcastWithTimeout(
 ): Promise<void> {
   try {
     await Promise.race([
-      pusher.trigger(channel, event, data),
+      await pusher.trigger(channel, event, data),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Pusher broadcast timeout')), timeoutMs)
       ),

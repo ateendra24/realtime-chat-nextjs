@@ -117,7 +117,7 @@ export async function POST(
         };
 
         // Fire and forget Pusher update
-        pusher.trigger(CHANNELS.chat(chatId), EVENTS.reaction_update, reactionUpdateData)
+        await pusher.trigger(CHANNELS.chat(chatId), EVENTS.reaction_update, reactionUpdateData)
             .catch(error => console.error('Error emitting Pusher reaction update:', error));
 
         return NextResponse.json(responseData);
