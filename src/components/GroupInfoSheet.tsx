@@ -32,6 +32,7 @@ import {
     UserPlus,
     Upload,
     Trash2,
+    AtSign,
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import moment from 'moment';
@@ -429,7 +430,7 @@ export function GroupInfoSheet({
                                                         )}
                                                     </div>
                                                     {member.username && (
-                                                        <p className="text-xs text-muted-foreground">@{member.username}</p>
+                                                        <p className="text-xs text-muted-foreground"><AtSign className="inline-block w-3 h-3 mr-0.5" />{member.username}</p>
                                                     )}
                                                 </div>
                                             </div>

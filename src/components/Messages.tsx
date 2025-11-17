@@ -42,6 +42,12 @@ export function Messages({
     currentSearchResultIndex = 0,
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+    function isEmoji(char: string) {
+        if (char.length === 2) {
+            const emojiRegex = /\p{Extended_Pictographic}/u;
+            return emojiRegex.test(char);
+        }
+    }
 
     // Auto-scroll to current search result
     useEffect(() => {
@@ -176,8 +182,8 @@ export function Messages({
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <div className={`px-4 py-2.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
-                                                        <p className="text-sm leading-relaxed">
+                                                    <div className={`px-4 py-2.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
+                                                        <p className="leading-relaxed text-inherit">
                                                             {message.content}
                                                             {message.isEdited && (
                                                                 <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
@@ -210,7 +216,7 @@ export function Messages({
 
                                             {/* Message Reactions */}
                                             {message.reactions && message.reactions.length > 0 && (
-                                                <div className={`flex flex-wrap gap-1.5 mt-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`flex flex-wrap gap-1.5 mt-1 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                                                     {message.reactions.map((reaction, index) => {
                                                         return (
                                                             <div

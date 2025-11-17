@@ -102,7 +102,6 @@ export async function GET() {
           c.last_message_content,
           c.last_message_user_id,
           c.last_message_user_name,
-          c.message_count,
           c.is_active,
           cp.role,
           cp.last_read_message_id,
@@ -196,8 +195,14 @@ export async function GET() {
       return chat;
     });
 
+    // Calculate total unread count across all chats
+    const totalUnreadCount = chatsWithDetails.reduce((sum, chat) => {
+      return sum + (typeof chat.unreadCount === 'number' ? chat.unreadCount : 0);
+    }, 0);
+
     return NextResponse.json({
-      chats: chatsWithDetails
+      chats: chatsWithDetails,
+      totalUnreadCount
     }, {
       headers: {
         'Cache-Control': 'private, max-age=5, must-revalidate', // 5s cache for better UX

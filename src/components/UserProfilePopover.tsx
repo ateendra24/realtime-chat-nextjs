@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Mail, User as UserIcon, Calendar } from "lucide-react";
+import { Mail, User as UserIcon, Calendar, AtSign } from "lucide-react";
 import type { Chat } from '@/types/global';
 import { Separator } from './ui/separator';
 
@@ -114,7 +114,7 @@ export function UserProfilePopover({
                                     {userProfile.fullName || userProfile.username}
                                 </h3>
                                 <p className="text-sm text-muted-foreground truncate">
-                                    @{userProfile.username}
+                                    <AtSign className="inline-block w-4 h-4 mr-1" />{userProfile.username}
                                 </p>
                             </div>
                         </div>
@@ -137,7 +137,7 @@ export function UserProfilePopover({
                                 <UserIcon className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs text-muted-foreground">Username</p>
-                                    <p className="text-sm font-medium truncate">@{userProfile.username}</p>
+                                    <p className="text-sm font-medium truncate"><AtSign className="inline-block w-3 h-3 mr-0.5" />{userProfile.username}</p>
                                 </div>
                             </div>
 

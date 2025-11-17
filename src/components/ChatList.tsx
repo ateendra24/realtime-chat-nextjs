@@ -16,7 +16,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "./ui/sidebar";
 
-export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger }: ChatListProps) {
+export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger, onTotalUnreadChange }: ChatListProps & { onTotalUnreadChange?: (count: number) => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
@@ -178,6 +178,11 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
 
       const data = await response.json();
 
+      // Update total unread count if callback provided
+      if (onTotalUnreadChange && typeof data.totalUnreadCount === 'number') {
+        onTotalUnreadChange(data.totalUnreadCount);
+      }
+
       // Only update state if data has actually changed
       setChats(prevChats => {
         const newChats = data.chats || [];
@@ -216,7 +221,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
 
   const getLastMessagePreview = useCallback((chat: Chat) => {
     if (chat.lastMessage) {
-      return `${chat.lastMessage.userName}: ${chat.lastMessage.content}`;
+      return `${chat.lastMessage.userName.split(' ')[0]}: ${chat.lastMessage.content}`;
     }
     return chat.description || (chat.type === 'group' ? 'Group chat' : 'No messages yet');
   }, []);

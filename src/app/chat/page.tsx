@@ -17,8 +17,11 @@ import { ChatDialogs } from "@/components/ChatDialogs";
 import { useChatLogic } from "@/hooks/useChatLogic";
 import { Toaster } from "@/components/ui/sonner";
 import type { Message } from "@/types/global";
+import { siteConfig } from "@/config/siteConfig";
 
 export default function ChatPage() {
+    const [totalUnreadCount, setTotalUnreadCount] = React.useState(0);
+
     const {
         // State
         messages,
@@ -67,6 +70,15 @@ export default function ChatPage() {
         addImageMessage(imageMessage);
     };
 
+    // Update document title with unread count
+    useEffect(() => {
+        if (totalUnreadCount > 0) {
+            document.title = `(${totalUnreadCount}) ${siteConfig.name}`;
+        } else {
+            document.title = siteConfig.name;
+        }
+    }, [totalUnreadCount]);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
@@ -96,6 +108,7 @@ export default function ChatPage() {
                             onSearchUsers={() => setShowUserSearch(true)}
                             selectedChatId={selectedChat?.id}
                             refreshTrigger={chatListRefresh}
+                            onTotalUnreadChange={setTotalUnreadCount}
                         />
                     </SidebarContent>
 

@@ -19,7 +19,7 @@ import {
 } from "./ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
-import { Edit, ChevronDown, LogOut, CheckCircle, XCircle, Camera, Upload, Lock, Eye, EyeOff } from "lucide-react"
+import { Edit, ChevronDown, LogOut, CheckCircle, XCircle, Camera, Upload, Lock, Eye, EyeOff, AtSign } from "lucide-react"
 import { toast } from "sonner"
 
 function UserFooter() {
@@ -248,7 +248,7 @@ function UserFooter() {
                             </Avatar>
                             <div className="flex-1">
                                 <p className="text-sm font-medium">{user?.fullName || user?.username}</p>
-                                <p className="text-xs text-muted-foreground">@{user?.username}</p>
+                                <p className="text-xs text-muted-foreground"><AtSign className="inline-block w-3 h-3 mr-1" />{user?.username}</p>
                             </div>
                             <ChevronDown className="h-4 w-4 text-muted-foreground mr-2" />
                         </div>
@@ -385,18 +385,21 @@ function UserFooter() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="username">Username</Label>
-                            <Input
-                                id="username"
-                                value={editedUsername}
-                                onChange={(e) => {
-                                    setEditedUsername(e.target.value);
-                                    if (errors.username) {
-                                        setErrors(prev => ({ ...prev, username: undefined }));
-                                    }
-                                }}
-                                placeholder="Enter your username"
-                                className={errors.username ? "border-red-500" : ""}
-                            />
+                            <div className='relative'>
+                                <Input
+                                    id="username"
+                                    value={editedUsername}
+                                    onChange={(e) => {
+                                        setEditedUsername(e.target.value);
+                                        if (errors.username) {
+                                            setErrors(prev => ({ ...prev, username: undefined }));
+                                        }
+                                    }}
+                                    placeholder="Enter your username"
+                                    className={`pl-7 ${errors.username ? "border-red-500" : ""}`}
+                                />
+                                <AtSign className="w-4 h-4 absolute top-1/2 transform -translate-y-1/2 left-2 opacity-40" />
+                            </div>
                             {errors.username && (
                                 <p className="text-xs text-red-500 flex items-center gap-1">
                                     <XCircle className="h-3 w-3" />
