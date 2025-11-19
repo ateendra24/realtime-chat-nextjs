@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { chatParticipants, messages, messageAttachments, users, chats } from '@/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { pusher, CHANNELS, EVENTS } from '@/lib/pusher';
+import { ably, CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
 
 export async function POST(request: NextRequest) {
     try {
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
             })
             .where(eq(chats.id, chatId));
 
-        // Broadcast the message via Pusher
+        // Broadcast the message
         const messageToSend = {
             id: newMessage.id,
             user: userInfo?.fullName || userInfo?.username || 'Unknown User',
@@ -124,33 +124,28 @@ export async function POST(request: NextRequest) {
         };
 
         try {
-            await Promise.race([
-                Promise.all([
-                    // Emit message to chat channel
-                    await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageToSend),
+            // Use Ably's guaranteed delivery with built-in timeout
+            await Promise.all([
+                // Emit message to chat channel
+                broadcastWithTimeout(CHANNELS.chat(chatId), EVENTS.message, messageToSend),
 
-                    // Emit global chat list update
-                    await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
-                        chatId,
-                        messageId: newMessage.id,
-                        message: lastMessageText,
-                        sender: userId,
-                    }),
+                // Emit global chat list update
+                broadcastWithTimeout(CHANNELS.global, EVENTS.global_chat_list_update, {
+                    chatId,
+                    messageId: newMessage.id,
+                    message: lastMessageText,
+                    sender: userId,
+                }),
 
-                    // Emit chat list update to chat participants
-                    await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
-                        chatId,
-                        messageId: newMessage.id,
-                    })
-                ]),
-                // Timeout after 3 seconds to prevent hanging
-                new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Pusher broadcast timeout')), 3000)
-                )
+                // Emit chat list update to chat participants
+                broadcastWithTimeout(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+                    chatId,
+                    messageId: newMessage.id,
+                })
             ]);
-        } catch (pusherError) {
-            console.error('Failed to broadcast message via Pusher:', pusherError);
-            // Don't fail the request if Pusher fails
+        } catch (ablyError) {
+            console.error('Failed to broadcast message via Ably:', ablyError);
+            // Don't fail the request if Ably broadcast fails
         }
 
         // Return the message with attachment info
