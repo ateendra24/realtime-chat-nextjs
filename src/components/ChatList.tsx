@@ -74,7 +74,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Listen for real-time updates using Pusher
+  // Listen for real-time updates using Ably
   useEffect(() => {
     if (!realtimeClient) return;
 

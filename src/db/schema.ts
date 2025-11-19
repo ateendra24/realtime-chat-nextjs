@@ -109,7 +109,7 @@ export const messageReactions = pgTable("message_reactions", {
   messageIdIdx: index("message_reactions_message_id_idx").on(table.messageId),
 }));
 
-// User sessions for real-time presence (Pusher-based)
+// User sessions for real-time presence
 export const userSessions = pgTable("user_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
