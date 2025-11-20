@@ -98,7 +98,50 @@ export function useChatLogic() {
         if (!realtimeClient) return;
 
         realtimeClient.onMessage((msg: Message) => {
-            // Handle messages for the currently selected chat
+            // Handle message deletion (should update for everyone, including the author)
+            if (msg.isDeleted) {
+                // Update for currently selected chat
+                if (selectedChat && msg.chatId === selectedChat.id) {
+                    setMessages((prev) => {
+                        const updatedMessages = prev.map(existingMsg =>
+                            existingMsg.id === msg.id
+                                ? { ...existingMsg, isDeleted: true, content: msg.content, reactions: [] }
+                                : existingMsg
+                        );
+
+                        // Update cache
+                        const cached = messagesCacheRef.current.get(selectedChat.id);
+                        if (cached) {
+                            messagesCacheRef.current.set(selectedChat.id, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
+
+                        return updatedMessages;
+                    });
+                }
+                // Update cache for other chats
+                else if (msg.chatId) {
+                    const cached = messagesCacheRef.current.get(msg.chatId);
+                    if (cached) {
+                        const updatedMessages = cached.messages.map(existingMsg =>
+                            existingMsg.id === msg.id
+                                ? { ...existingMsg, isDeleted: true, content: msg.content, reactions: [] }
+                                : existingMsg
+                        );
+                        messagesCacheRef.current.set(msg.chatId, {
+                            ...cached,
+                            messages: updatedMessages,
+                            timestamp: Date.now()
+                        });
+                    }
+                }
+                return; // Don't process as new message
+            }
+
+            // Handle NEW messages for the currently selected chat (from other users only)
             if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates

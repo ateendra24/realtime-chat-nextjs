@@ -99,18 +99,8 @@ class AblyRealtimeClient implements RealtimeClient {
       });
       this.channels.clear();
 
-      // Then close the connection if it exists and is in a closeable state
-      if (this.ably.connection) {
-        try {
-          const state = this.ably.connection.state;
-          // Only attempt to close if connection is in an active state
-          if (state === 'connected' || state === 'connecting') {
-            this.ably.close();
-          }
-        } catch (closeError) {
-          // Silently ignore all close errors - connection may already be closed
-        }
-      }
+      // Don't explicitly close Ably connection - let it clean up naturally
+      // Calling close() can throw "Connection closed" errors during React cleanup
     } catch (error) {
       // Silently ignore all disconnect errors
     } finally {

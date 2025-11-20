@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { messages, messageAttachments, chats, users } from '@/db/schema';
+import { messages, messageAttachments, chats, users, messageReactions } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { del } from '@vercel/blob';
+import { broadcastWithTimeout, CHANNELS, EVENTS } from '@/lib/ably';
 
 // PUT /api/messages/[messageId] - Edit message
 export async function PUT(
@@ -103,6 +104,9 @@ export async function DELETE(
             return NextResponse.json({ error: 'Message not found or unauthorized' }, { status: 404 });
         }
 
+        // Get chatId early for later use
+        const chatId = message[0].chatId;
+
         // Check if message has image attachments and delete them from Vercel Blob
         const attachments = await db
             .select()
@@ -121,6 +125,11 @@ export async function DELETE(
             await Promise.all(deletePromises);
         }
 
+        // Delete all reactions for this message
+        await db
+            .delete(messageReactions)
+            .where(eq(messageReactions.messageId, messageId));
+
         // Soft delete the message
         await db
             .update(messages)
@@ -130,8 +139,39 @@ export async function DELETE(
             })
             .where(eq(messages.id, messageId));
 
+        // Get user info for complete message broadcast
+        const userInfo = await db
+            .select({
+                username: users.username,
+                fullName: users.fullName,
+                avatarUrl: users.avatarUrl,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        const user = userInfo[0];
+
+        // Broadcast message deletion to all chat participants (fire-and-forget)
+        const broadcastPromises = [
+            broadcastWithTimeout(
+                CHANNELS.chat(chatId),
+                EVENTS.message,
+                {
+                    id: messageId,
+                    chatId,
+                    userId,
+                    user: user?.fullName || user?.username || 'Unknown User',
+                    avatarUrl: user?.avatarUrl,
+                    content: 'This message has been deleted',
+                    isDeleted: true,
+                    createdAt: message[0].createdAt,
+                    type: 'text' as const,
+                }
+            )
+        ];
+
         // Check if this was the last message and update chat cache
-        const chatId = message[0].chatId;
         const chat = await db
             .select({ lastMessageId: chats.lastMessageId })
             .from(chats)
@@ -172,6 +212,20 @@ export async function DELETE(
                         updatedAt: new Date(),
                     })
                     .where(eq(chats.id, chatId));
+
+                // Broadcast chat list update with new last message (both to chat channel and globally)
+                broadcastPromises.push(
+                    broadcastWithTimeout(
+                        CHANNELS.chat(chatId),
+                        EVENTS.chat_list_update,
+                        { chatId, action: 'last_message_updated' }
+                    ),
+                    broadcastWithTimeout(
+                        CHANNELS.global,
+                        EVENTS.global_chat_list_update,
+                        { chatId, action: 'last_message_updated' }
+                    )
+                );
             } else {
                 // No more messages, clear the last message cache
                 await db
@@ -185,8 +239,27 @@ export async function DELETE(
                         updatedAt: new Date(),
                     })
                     .where(eq(chats.id, chatId));
+
+                // Broadcast chat list update with cleared last message (both to chat channel and globally)
+                broadcastPromises.push(
+                    broadcastWithTimeout(
+                        CHANNELS.chat(chatId),
+                        EVENTS.chat_list_update,
+                        { chatId, action: 'last_message_cleared' }
+                    ),
+                    broadcastWithTimeout(
+                        CHANNELS.global,
+                        EVENTS.global_chat_list_update,
+                        { chatId, action: 'last_message_cleared' }
+                    )
+                );
             }
         }
+
+        // Wait for all broadcasts to complete
+        await Promise.all(broadcastPromises).catch(error => {
+            console.error('Failed to broadcast updates:', error);
+        });
 
         return NextResponse.json({ message: 'Message deleted successfully' });
 
