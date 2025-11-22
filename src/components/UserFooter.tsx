@@ -254,8 +254,7 @@ function UserFooter() {
                         </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 rounded-2xl bg-card">
-                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel >My Account</DropdownMenuLabel>
                         <DropdownMenuItem className='cursor-pointer rounded-xl' onClick={() => {
                             setShowProfileEdit(true);
                             // Reset form data when opening
@@ -467,7 +466,7 @@ function UserFooter() {
             <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
                 <DialogContent className="sm:max-w-[425px] rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                        <DialogTitle className="flex gap-2">
                             <Lock className="h-5 w-5" />
                             Change Password
                         </DialogTitle>

@@ -155,7 +155,7 @@ export function Messages({
                                             <div className="w-8 h-8" />
                                         ) : null}
 
-                                        <div className={`flex-1 max-w-xs ${isCurrentUser ? 'text-right' : ''}`}>
+                                        <div className={`flex-1 max-w-lg ${isCurrentUser ? 'text-right' : ''}`}>
                                             {shouldShowAvatar && !isCurrentUser && (
                                                 <p className="font-semibold text-sm mb-1 text-foreground/90">{message.user.split(' ')[0] || 'Unknown User'}</p>
                                             )}
