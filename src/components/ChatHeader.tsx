@@ -6,7 +6,7 @@ import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
 import { UserProfilePopover } from "@/components/UserProfilePopover";
 import { SearchMessages } from './SearchMessages';
-import type { Chat, ChatHeaderProps } from '@/types/global';
+import type { ChatHeaderProps } from '@/types/global';
 
 interface LocalChatHeaderProps extends ChatHeaderProps {
     onLeaveGroup?: (groupId: string) => void;

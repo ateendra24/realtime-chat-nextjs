@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import imageCompression from 'browser-image-compression';
-import type { MessageAttachment, UploadResult, UseImageUploadResult } from '@/types/global';
+import type { UploadResult, UseImageUploadResult } from '@/types/global';
 
 const compressionOptions = {
     maxSizeMB: 2, // Maximum file size in MB

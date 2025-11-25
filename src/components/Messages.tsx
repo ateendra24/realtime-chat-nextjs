@@ -6,7 +6,7 @@ import { MessageSquare, Loader2, ChevronUp } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
-import type { Message, Chat, MessagesProps } from '@/types/global';
+import type { MessagesProps } from '@/types/global';
 import { ProgressiveBlur } from './ui/progressive-blur';
 
 // Helper function to format date separator

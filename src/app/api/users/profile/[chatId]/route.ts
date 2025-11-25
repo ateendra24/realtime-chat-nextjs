@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { users, chats, chatParticipants } from '@/db/schema';
-import { eq, and, ne } from 'drizzle-orm';
+import { chats, chatParticipants } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // GET /api/users/profile/[chatId] - Get user profile from direct chat
 export async function GET(

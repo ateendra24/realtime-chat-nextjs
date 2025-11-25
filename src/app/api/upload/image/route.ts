@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { chatParticipants, messages, messageAttachments, users, chats } from '@/db/schema';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { ably, CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
+import { CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
 
 export async function POST(request: NextRequest) {
     try {

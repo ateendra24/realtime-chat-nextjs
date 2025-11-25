@@ -23,7 +23,6 @@ if (!connectionString) {
 
 // Singleton pattern: reuse connection across function invocations (warm starts)
 declare global {
-    // eslint-disable-next-line no-var
     var dbClient: postgres.Sql | undefined;
 }
 

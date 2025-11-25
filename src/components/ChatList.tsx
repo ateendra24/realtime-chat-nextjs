@@ -198,7 +198,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
         setLoading(false);
       }
     }
-  }, []);
+  }, [onTotalUnreadChange]);
 
   const getChatDisplayName = useCallback((chat: Chat) => {
     if (chat.type === 'direct') {

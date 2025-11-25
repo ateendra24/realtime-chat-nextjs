@@ -1,7 +1,6 @@
 "use client"
 import { siteConfig } from '@/config/siteConfig'
 import { useTheme } from 'next-themes'
-import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
 import { Button } from '../ui/button'
 import { Moon, Sun } from 'lucide-react'

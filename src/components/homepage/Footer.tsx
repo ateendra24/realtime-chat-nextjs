@@ -1,8 +1,6 @@
 import React from 'react'
-import Link from 'next/link'
 import { siteConfig } from '@/config/siteConfig'
-import { Github, Heart } from 'lucide-react'
-import X from '../icons/X'
+import { Heart } from 'lucide-react'
 
 function Footer() {
     const currentYear = new Date().getFullYear()

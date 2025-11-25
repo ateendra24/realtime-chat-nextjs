@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { messages, users, messageReactions, messageAttachments, chatParticipants, chats } from "@/db/schema";
 import { eq, desc, sql, inArray, and, lt } from "drizzle-orm";
-import { ably, CHANNELS, EVENTS, broadcastWithTimeout } from "@/lib/ably";
+import { CHANNELS, EVENTS, broadcastWithTimeout } from "@/lib/ably";
 
 export async function GET(
     req: NextRequest,

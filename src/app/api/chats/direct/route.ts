@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { chats, chatParticipants } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { ably, broadcastWithTimeout } from "@/lib/ably";
+import { broadcastWithTimeout } from "@/lib/ably";
 
 interface OtherUser {
   full_name?: string | null;
@@ -129,13 +129,13 @@ export async function POST(request: NextRequest) {
         chatId: newChat.id,
         participants: [userId, participantId]
       });
-    } catch (ablyError) {
+    } catch {
       // Production: logging removed
       // Don't fail the request if Ably broadcast fails
     }
 
     return NextResponse.json({ chat: formattedNewChat });
-  } catch (error) {
+  } catch {
     // Production: logging removed
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { messageReactions, messages, chatParticipants } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { ably, CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
+import { CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
 
 // POST /api/messages/[messageId]/reactions - Add reaction to message
 export async function POST(

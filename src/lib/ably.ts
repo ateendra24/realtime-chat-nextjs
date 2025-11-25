@@ -1,8 +1,10 @@
 import * as Ably from 'ably';
 
 // Server-side Ably instance with production-optimized settings
+const apiKey = process.env.ABLY_API_KEY || 'placeholder:key';
+
 export const ably = new Ably.Rest({
-  key: process.env.ABLY_API_KEY!,
+  key: apiKey,
   // Guaranteed message delivery with automatic retries
   // Critical for E2EE - ensures encrypted messages are never lost
   queryTime: true,

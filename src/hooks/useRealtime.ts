@@ -28,7 +28,7 @@ class AblyRealtimeClient implements RealtimeClient {
       if (!tokenResponse.ok) {
         throw new Error('Failed to fetch Ably token');
       }
-      const tokenRequest = await tokenResponse.json();
+      await tokenResponse.json();
 
       // Initialize Ably with token authentication
       this.ably = new Ably.Realtime({
@@ -93,7 +93,7 @@ class AblyRealtimeClient implements RealtimeClient {
       this.channels.forEach((channel) => {
         try {
           channel.unsubscribe();
-        } catch (error) {
+        } catch {
           // Ignore unsubscribe errors during cleanup
         }
       });
@@ -101,7 +101,7 @@ class AblyRealtimeClient implements RealtimeClient {
 
       // Don't explicitly close Ably connection - let it clean up naturally
       // Calling close() can throw "Connection closed" errors during React cleanup
-    } catch (error) {
+    } catch {
       // Silently ignore all disconnect errors
     } finally {
       this.ably = null;
@@ -257,11 +257,13 @@ class AblyRealtimeClient implements RealtimeClient {
     });
   }
 
-  emitChatListUpdate(data: ChatListUpdateData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  emitChatListUpdate(_data: ChatListUpdateData) {
     // These are handled server-side when messages are sent
   }
 
-  emitGlobalChatListUpdate(data: GlobalChatListUpdateData) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  emitGlobalChatListUpdate(_data: GlobalChatListUpdateData) {
     // These are handled server-side when messages are sent
   }
 

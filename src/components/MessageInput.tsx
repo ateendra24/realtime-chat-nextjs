@@ -2,13 +2,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Smile, Image, X, Loader2 } from "lucide-react";
+import { Send, Smile, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useTheme } from 'next-themes';
 import { useImageUpload, createImagePreview, revokeImagePreview } from '@/hooks/useImageUpload';
 import { toast } from 'sonner';
-import type { Message, Chat, MessageInputProps } from '@/types/global';
+import type { Message, MessageInputProps } from '@/types/global';
 
 interface LocalMessageInputProps extends Omit<MessageInputProps, 'sendMessage'> {
     onSendMessage: () => void;
@@ -217,7 +217,7 @@ export function MessageInput({
                     disabled={uploading}
                     title="Upload image"
                 >
-                    <Image className="h-5 w-5" />
+                    <ImageIcon className="h-5 w-5" />
                 </Button>
 
                 {/* Emoji Picker Button */}
