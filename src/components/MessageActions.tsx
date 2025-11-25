@@ -9,7 +9,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash, Clock } from "lucide-react";
+import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash } from "lucide-react";
 
 interface MessageActionsProps {
     messageId: string;

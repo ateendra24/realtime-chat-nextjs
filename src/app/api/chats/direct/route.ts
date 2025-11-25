@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { chats, chatParticipants } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { pusher } from "@/lib/pusher";
+import { broadcastWithTimeout } from "@/lib/ably";
 
 interface OtherUser {
   full_name?: string | null;
@@ -122,21 +122,21 @@ export async function POST(request: NextRequest) {
       isOnline: otherUser?.is_online || false,
     };
 
-    // Broadcast new chat creation to all connected users via Pusher
+    // Broadcast new chat creation to all connected users via Ably
     try {
-      await pusher.trigger(['user-' + userId, 'user-' + participantId], 'new-chat', {
+      await broadcastWithTimeout(['user-' + userId, 'user-' + participantId], 'new-chat', {
         type: "direct",
         chatId: newChat.id,
         participants: [userId, participantId]
       });
-    } catch (pusherError) {
-      console.error("Failed to broadcast new chat via Pusher:", pusherError);
-      // Don't fail the request if Pusher broadcast fails
+    } catch {
+      // Production: logging removed
+      // Don't fail the request if Ably broadcast fails
     }
 
     return NextResponse.json({ chat: formattedNewChat });
-  } catch (error) {
-    console.error("Error creating direct chat:", error);
+  } catch {
+    // Production: logging removed
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

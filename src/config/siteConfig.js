@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-
 export const siteConfig = {
     name: "ChatFlow",
     description: "A real-time chat application",

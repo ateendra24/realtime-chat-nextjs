@@ -6,7 +6,6 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Mail, User as UserIcon, Calendar, AtSign } from "lucide-react";
 import type { Chat } from '@/types/global';
 import { Separator } from './ui/separator';
@@ -35,41 +34,34 @@ export function UserProfilePopover({
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`/api/users/profile/${selectedChat.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserProfile(data);
+                } else {
+                    // Fallback to chat data
+                    setUserProfile({
+                        id: selectedChat.id,
+                        username: selectedChat.username || 'Unknown',
+                        fullName: selectedChat.displayName,
+                        avatarUrl: selectedChat.avatarUrl,
+                        isOnline: selectedChat.isOnline,
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         if (open && selectedChat?.type === 'direct' && !userProfile) {
             fetchUserProfile();
         }
-    }, [open, selectedChat]);
-
-    const fetchUserProfile = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch(`/api/users/profile/${selectedChat.id}`);
-            if (response.ok) {
-                const data = await response.json();
-                setUserProfile(data);
-            } else {
-                // Fallback to chat data
-                setUserProfile({
-                    id: selectedChat.id,
-                    username: selectedChat.username || 'Unknown',
-                    fullName: selectedChat.displayName,
-                    avatarUrl: selectedChat.avatarUrl,
-                    isOnline: selectedChat.isOnline,
-                });
-            }
-        } catch (error) {
-            console.error('Error fetching user profile:', error);
-            setUserProfile({
-                id: selectedChat.id,
-                username: selectedChat.username || 'Unknown',
-                fullName: selectedChat.displayName,
-                avatarUrl: selectedChat.avatarUrl,
-                isOnline: selectedChat.isOnline,
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [open, selectedChat, userProfile]);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';

@@ -3,6 +3,7 @@ import React from 'react'
 import { Button } from '../ui/button'
 import Link from 'next/link'
 import { AnimatedShinyText } from '../ui/animated-shiny-text'
+import Image from 'next/image'
 
 function Content() {
     return (
@@ -85,7 +86,7 @@ function Content() {
                                 >
                                     <source src="/demo-video.mp4" type="video/mp4" />
                                     {/* Fallback image if video doesn't load */}
-                                    <img src="/s1.png" alt="Chat app demo" className="w-full h-full object-cover" />
+                                    <Image width={1000} height={700} src="/s1.png" alt="Chat app demo" className="w-full h-full object-cover" />
                                 </video>
 
                             </div>

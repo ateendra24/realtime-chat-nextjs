@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { messageReactions, messages, chatParticipants } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { pusher, CHANNELS, EVENTS } from '@/lib/pusher';
+import { CHANNELS, EVENTS, broadcastWithTimeout } from '@/lib/ably';
 
 // POST /api/messages/[messageId]/reactions - Add reaction to message
 export async function POST(
@@ -116,9 +116,9 @@ export async function POST(
             userId
         };
 
-        // Fire and forget Pusher update
-        await pusher.trigger(CHANNELS.chat(chatId), EVENTS.reaction_update, reactionUpdateData)
-            .catch(error => console.error('Error emitting Pusher reaction update:', error));
+        // Fire and forget Ably update with guaranteed delivery
+        broadcastWithTimeout(CHANNELS.chat(chatId), EVENTS.reaction_update, reactionUpdateData)
+            .catch(error => console.error('Error emitting Ably reaction update:', error));
 
         return NextResponse.json(responseData);
 

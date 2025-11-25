@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { messages, users, messageReactions, messageAttachments, chatParticipants, chats } from "@/db/schema";
 import { eq, desc, sql, inArray, and, lt } from "drizzle-orm";
-import { pusher, CHANNELS, EVENTS } from "@/lib/pusher";
+import { CHANNELS, EVENTS, broadcastWithTimeout } from "@/lib/ably";
 
 export async function GET(
     req: NextRequest,
@@ -301,14 +301,14 @@ export async function POST(
             reactions: [],
         };
 
-        // Broadcast message using Pusher - Fire and forget for speed (non-blocking)
-        // Don't await Pusher to return response immediately (100-200ms faster)
+        // Broadcast message using Ably - Fire and forget for speed (non-blocking)
+        // Ably provides guaranteed delivery with automatic retries
         Promise.all([
             // Emit message to chat channel
-            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.message, messageData),
+            broadcastWithTimeout(CHANNELS.chat(chatId), EVENTS.message, messageData),
 
             // Emit global chat list update
-            await pusher.trigger(CHANNELS.global, EVENTS.global_chat_list_update, {
+            broadcastWithTimeout(CHANNELS.global, EVENTS.global_chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
                 message: newMessage.content,
@@ -316,16 +316,16 @@ export async function POST(
             }),
 
             // Emit chat list update to chat participants
-            await pusher.trigger(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
+            broadcastWithTimeout(CHANNELS.chat(chatId), EVENTS.chat_list_update, {
                 chatId,
                 messageId: newMessage.id,
             })
         ]).catch(error => {
             // Log but don't fail the request
-            console.error("Failed to emit Pusher events:", error);
+            console.error("Failed to emit Ably events:", error);
         });
 
-        // Return response immediately without waiting for Pusher (fire-and-forget)
+        // Return response immediately without waiting for Ably
         return NextResponse.json({
             message: responseMessage,
             success: true

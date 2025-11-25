@@ -165,7 +165,7 @@ export interface UserPresenceData {
 // ============================================
 
 /**
- * Real-time client interface (Pusher implementation)
+ * Real-time client interface (Ably implementation)
  */
 export interface RealtimeClient {
   connect: () => void;

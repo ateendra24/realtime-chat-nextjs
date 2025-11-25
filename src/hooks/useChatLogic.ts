@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
-import type { Message, Chat, GroupMember, User } from '@/types/global';
-import { useIsMobile } from './use-mobile';
-import { useSidebar } from '@/components/ui/sidebar';
+import type { Message, Chat } from '@/types/global';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();
@@ -18,7 +16,7 @@ export function useChatLogic() {
     const [hasMoreMessages, setHasMoreMessages] = useState(false);
     const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
-    const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+    // const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isUpdatingReactionsRef = useRef(false);
@@ -98,7 +96,50 @@ export function useChatLogic() {
         if (!realtimeClient) return;
 
         realtimeClient.onMessage((msg: Message) => {
-            // Handle messages for the currently selected chat
+            // Handle message deletion (should update for everyone, including the author)
+            if (msg.isDeleted) {
+                // Update for currently selected chat
+                if (selectedChat && msg.chatId === selectedChat.id) {
+                    setMessages((prev) => {
+                        const updatedMessages = prev.map(existingMsg =>
+                            existingMsg.id === msg.id
+                                ? { ...existingMsg, isDeleted: true, content: msg.content, reactions: [] }
+                                : existingMsg
+                        );
+
+                        // Update cache
+                        const cached = messagesCacheRef.current.get(selectedChat.id);
+                        if (cached) {
+                            messagesCacheRef.current.set(selectedChat.id, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
+
+                        return updatedMessages;
+                    });
+                }
+                // Update cache for other chats
+                else if (msg.chatId) {
+                    const cached = messagesCacheRef.current.get(msg.chatId);
+                    if (cached) {
+                        const updatedMessages = cached.messages.map(existingMsg =>
+                            existingMsg.id === msg.id
+                                ? { ...existingMsg, isDeleted: true, content: msg.content, reactions: [] }
+                                : existingMsg
+                        );
+                        messagesCacheRef.current.set(msg.chatId, {
+                            ...cached,
+                            messages: updatedMessages,
+                            timestamp: Date.now()
+                        });
+                    }
+                }
+                return; // Don't process as new message
+            }
+
+            // Handle NEW messages for the currently selected chat (from other users only)
             if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
@@ -392,8 +433,8 @@ export function useChatLogic() {
 
         // Check if we have cached messages for this chat
         const cached = messagesCacheRef.current.get(chat.id);
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-        const isCacheValid = cached && (Date.now() - cached.timestamp) < CACHE_DURATION;
+        // const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+        // const isCacheValid = cached && (Date.now() - cached.timestamp) < CACHE_DURATION;
 
         // STALE-WHILE-REVALIDATE: Show cached messages immediately if available
         if (cached) {
@@ -424,7 +465,7 @@ export function useChatLogic() {
         setHasMoreMessages(false);
         setNextCursor(null);
         setLoadingMoreMessages(false);
-        setIsLoadingOlderMessages(false);
+        // setIsLoadingOlderMessages(false);
 
         if (chat.id) {
             try {
@@ -575,14 +616,14 @@ export function useChatLogic() {
         }
 
         setLoadingMoreMessages(true);
-        setIsLoadingOlderMessages(true);
+        // setIsLoadingOlderMessages(true);
 
         // Get the scroll container (it might be a child of scrollAreaRef)
         const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') || scrollAreaRef.current;
 
         if (!scrollContainer) {
             setLoadingMoreMessages(false);
-            setIsLoadingOlderMessages(false);
+            // setIsLoadingOlderMessages(false);
             return;
         }
 
@@ -619,18 +660,18 @@ export function useChatLogic() {
 
                         // Verify the scroll position was set correctly
                         setTimeout(() => {
-                            setIsLoadingOlderMessages(false);
+                            // setIsLoadingOlderMessages(false);
                         }, 100);
                     });
                 });
 
             } else {
                 console.error("Failed to load more messages:", response.statusText);
-                setIsLoadingOlderMessages(false);
+                // setIsLoadingOlderMessages(false);
             }
         } catch (error) {
             console.error("Error loading more messages:", error);
-            setIsLoadingOlderMessages(false);
+            // setIsLoadingOlderMessages(false);
         } finally {
             setLoadingMoreMessages(false);
         }
@@ -714,7 +755,7 @@ export function useChatLogic() {
         }
     };
 
-    const handleEditMessage = async (messageId: string) => {
+    const handleEditMessage = async (_messageId: string) => {
         // For now, just log that editing was requested
         // In a full implementation, you'd open an edit modal or inline editor
         // This would typically open an edit dialog or enable inline editing
