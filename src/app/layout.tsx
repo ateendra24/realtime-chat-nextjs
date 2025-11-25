@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner"
 import { siteConfig } from "@/config/siteConfig";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -54,6 +55,7 @@ export default function RootLayout({
           >
             {children}
             <Toaster position="bottom-right" />
+            <Analytics />
           </ThemeProvider>
         </body>
       </html>
