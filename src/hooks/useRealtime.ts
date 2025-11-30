@@ -220,10 +220,10 @@ class AblyRealtimeClient implements RealtimeClient {
       const channel = this.ably?.channels.get('global-updates');
       if (channel) {
         this.channels.set('global-updates', channel);
-        // Subscribe automatically attaches
       }
     }
     const channel = this.channels.get('global-updates');
+    channel?.unsubscribe('global-chat-list-update');
     channel?.subscribe('global-chat-list-update', (message) => {
       callback(message.data as GlobalChatListUpdateData);
     });

@@ -11,9 +11,18 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Validate environment variable
+        const apiKey = process.env.ABLY_API_KEY;
+        if (!apiKey) {
+            console.error('ABLY_API_KEY is not configured');
+            return NextResponse.json(
+                { error: 'Server configuration error' },
+                { status: 500 }
+            );
+        }
         // Create Ably Rest client
         const ably = new Ably.Rest({
-            key: process.env.ABLY_API_KEY!,
+            key: apiKey,
         });
 
         // Generate token with user ID as client ID for presence

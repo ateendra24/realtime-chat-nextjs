@@ -298,8 +298,8 @@ function UserFooter() {
             <Dialog open={showProfileEdit} onOpenChange={setShowProfileEdit}>
                 <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle>Edit Profile</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className='text-center'>Edit Profile</DialogTitle>
+                        <DialogDescription className='text-center'>
                             Update your profile information and username.
                         </DialogDescription>
                     </DialogHeader>
@@ -465,11 +465,11 @@ function UserFooter() {
             <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
                 <DialogContent className="sm:max-w-[425px] rounded-2xl">
                     <DialogHeader>
-                        <DialogTitle className="flex gap-2">
+                        <DialogTitle className="flex gap-2 justify-center">
                             <Lock className="h-5 w-5" />
                             Change Password
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className='text-center'>
                             Enter your current password and a new password to update your account security.
                         </DialogDescription>
                     </DialogHeader>
