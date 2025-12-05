@@ -3,12 +3,16 @@ import { siteConfig } from '@/config/siteConfig'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { Button } from '../ui/button'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Star, Sun } from 'lucide-react'
 import Link from 'next/link'
 import Github from '../icons/Github'
 import X from '../icons/X'
 
-function Navbar() {
+interface NavbarProps {
+    githubStars?: number | null
+}
+
+function Navbar({ githubStars }: NavbarProps) {
     const { setTheme, theme } = useTheme()
     const [mounted, setMounted] = useState(false)
 
@@ -42,14 +46,16 @@ function Navbar() {
                             <div className="h-4 w-4" />
                         </Button>
                     )}
-                    <Button variant="secondary" size="icon" className='rounded-full cursor-pointer' asChild>
+                    <Button variant="secondary" className='rounded-full cursor-pointer gap-0 px-3' asChild>
                         <Link href={siteConfig.links.github} target='_blank' rel='noopener noreferrer'>
-                            <Github />
+                            <Github className="h-4 w-4 mr-1.5" />
+                            <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 mr-0.5" />
+                            <span className="text-sm font-medium">{githubStars ?? '-'}</span>
                         </Link>
                     </Button>
                     <Button variant="secondary" size="icon" className='rounded-full cursor-pointer' asChild>
                         <Link href={siteConfig.links.twitter} target='_blank' rel='noopener noreferrer'>
-                            <X />
+                            <X className="h-4 w-4" />
                         </Link>
                     </Button>
                 </div>

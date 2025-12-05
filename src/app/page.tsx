@@ -3,6 +3,19 @@ import Content from '@/components/homepage/Content'
 import Footer from '@/components/homepage/Footer'
 import { Metadata } from 'next';
 
+async function getGitHubStars(): Promise<number | null> {
+  try {
+    const res = await fetch('https://api.github.com/repos/ateendra24/realtime-chat-nextjs', {
+      next: { revalidate: 3600 } // Cache for 1 hour
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.stargazers_count ?? null
+  } catch {
+    return null
+  }
+}
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://chat-flow-live.vercel.app"),
   keywords: ["ChatFlow", "ChatFlow Live", "Ateendra Pratap Solanki", "Chat Application", "Real-time Chat", "Messaging App", "Next.js Chat App", "Web Developer Portfolio"],
@@ -34,13 +47,14 @@ export const metadata: Metadata = {
   authors: [{ name: "Ateendra Pratap Solanki" }],
 };
 
-function page() {
+async function page() {
+  const stars = await getGitHubStars()
 
   return (
     <div className="min-h-dvh flex flex-col">
 
       {/* Navbar */}
-      <Navbar />
+      <Navbar githubStars={stars} />
 
       {/* Main Content */}
       <Content />
