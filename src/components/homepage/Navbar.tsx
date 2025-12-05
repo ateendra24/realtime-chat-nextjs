@@ -18,10 +18,10 @@ function Navbar() {
     }, [])
 
     return (
-        <header className="relative z-10 w-full p-4">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
                 <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-bold text-secondary-foreground">
+                    <span className="text-2xl font-black bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                         {siteConfig.name}
                     </span>
                 </div>
