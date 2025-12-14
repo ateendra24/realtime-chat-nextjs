@@ -7,6 +7,7 @@ A modern, full-featured realtime chat application built with Next.js 15, TypeScr
 ![Screenshot](./public/s0.png)
 ![Screenshot](./public/s1.png)
 ![Screenshot](./public/s2.png)
+![Screenshot](./public/s3.png)
 
 ## Architecture Diagram
 
@@ -89,6 +90,7 @@ graph TB
 - ✅ Group Avatar Upload
 - ✅ Unread Message Counts
 - ✅ User Presence (Online/Offline Status)
+- ✅ Bubble Typing Indicator
 - ✅ Message Search
 - ✅ Responsive Design (Mobile-First)
 - ✅ Dark/Light Theme Toggle
@@ -389,6 +391,7 @@ graph TD
 #### User Experience
 
 - **Unread indicators** with real-time count updates (hidden for active chats)
+- **Real-time Typing Indicators** showing when other users are typing
 - **Smart timestamps** with relative time formatting
 - **Auto-scrolling** to latest messages with smooth animations
 - **Responsive design** that works perfectly on desktop and mobile
@@ -553,7 +556,6 @@ sequenceDiagram
 - [ ] **Video calls** - Integrate WebRTC for video/audio calling
 - [ ] **Message encryption** - End-to-end encryption for enhanced privacy
 - [ ] **Admin controls** - Advanced group management features
-- [ ] **User presence** - Online/offline status indicators (removed in current version)
 - [ ] **Image editing** - Basic crop, rotate, and filter capabilities before sending
 
 ### Technical Improvements
