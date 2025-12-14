@@ -3,10 +3,9 @@ import { siteConfig } from '@/config/siteConfig'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useState } from 'react'
 import { Button } from '../ui/button'
-import { Moon, Star, Sun } from 'lucide-react'
+import { Moon, Sun, MessageCircle, Star } from 'lucide-react'
 import Link from 'next/link'
 import Github from '../icons/Github'
-import X from '../icons/X'
 
 interface NavbarProps {
     githubStars?: number | null
@@ -16,7 +15,6 @@ function Navbar({ githubStars }: NavbarProps) {
     const { setTheme, theme } = useTheme()
     const [mounted, setMounted] = useState(false)
 
-    // Prevent hydration mismatch by only rendering theme toggle after mount
     useEffect(() => {
         setMounted(true)
     }, [])
@@ -24,40 +22,35 @@ function Navbar({ githubStars }: NavbarProps) {
     return (
         <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="max-w-7xl mx-auto flex items-center justify-between p-4">
+                <Link href="/" className="flex items-center space-x-2">
+                    <MessageCircle className="h-6 w-6 text-primary" />
+                    <span className="text-xl font-bold">{siteConfig.name}</span>
+                </Link>
+
+                <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+                    <Link href="#features" className="transition-colors hover:text-primary text-muted-foreground">Features</Link>
+                    <Link href="#tech-stack" className="transition-colors hover:text-primary text-muted-foreground">Tech Stack</Link>
+                    <Link href={siteConfig.links.github} target="_blank" className="transition-colors hover:text-primary text-muted-foreground">Source</Link>
+                </nav>
+
                 <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-black bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                        {siteConfig.name}
-                    </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                    {mounted ? (
-                        theme === "light" ? (
-                            <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
-                                <Sun className="h-4 w-4" strokeWidth={1.5} />
-                            </Button>
-                        ) : (
-                            <Button size="icon" onClick={() => setTheme("light")} className='cursor-pointer rounded-full'>
-                                <Moon className="h-4 w-4" strokeWidth={1.5} />
-                            </Button>
-                        )
-                    ) : (
-                        // Render a placeholder button to prevent layout shift
-                        <Button size="icon" className='cursor-pointer rounded-full' disabled>
-                            <div className="h-4 w-4" />
+                    {mounted && (
+                        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "light" ? "dark" : "light")} className="rounded-full">
+                            {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                         </Button>
                     )}
-                    <Button variant="secondary" className='rounded-full cursor-pointer gap-0 px-3' asChild>
+
+                    <Button variant="secondary" className='hidden sm:flex rounded-full cursor-pointer gap-0 px-3' asChild>
                         <Link href={siteConfig.links.github} target='_blank' rel='noopener noreferrer'>
                             <Github className="h-4 w-4 mr-1.5" />
                             <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500 mr-0.5" />
-                            <span className="text-sm font-medium">{githubStars ?? '-'}</span>
+                            <span className="text-sm font-medium">{githubStars ?? 'Star'}</span>
                         </Link>
                     </Button>
-                    <Button variant="secondary" size="icon" className='rounded-full cursor-pointer' asChild>
-                        <Link href={siteConfig.links.twitter} target='_blank' rel='noopener noreferrer'>
-                            <X className="h-4 w-4" />
-                        </Link>
-                    </Button>
+
+                    <Link href="/sign-up">
+                        <Button size="sm" className="rounded-full px-6">Get Started</Button>
+                    </Link>
                 </div>
             </div>
         </header>

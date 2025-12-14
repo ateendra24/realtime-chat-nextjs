@@ -7,7 +7,7 @@ export const siteConfig = {
         github: "https://github.com/ateendra24/realtime-chat-nextjs",
     },
     author: {
-        name: "Ateendra Pratap Solanki",
+        name: "Ateendra",
         twitter: "@ateendra24",
         url: "https://ateendra.vercel.app"
     }

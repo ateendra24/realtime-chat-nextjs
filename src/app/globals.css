@@ -190,8 +190,18 @@
     url('/fonts/Satoshi-BlackItalic.woff2') format('woff2');
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   letter-spacing: var(--tracking-normal);
+}
+
+#features,
+#tech-stack,
+#how-it-works {
+  scroll-margin-top: 80px;
 }
 
 @layer base {
