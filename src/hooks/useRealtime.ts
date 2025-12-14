@@ -7,7 +7,8 @@ import type {
   ReactionUpdateData,
   ChatListUpdateData,
   GlobalChatListUpdateData,
-  UserPresenceData
+  UserPresenceData,
+  TypingEvent
 } from '@/types/global';
 
 // Ably implementation for real-time functionality with E2EE support
@@ -18,6 +19,7 @@ class AblyRealtimeClient implements RealtimeClient {
   private currentChatId: string | null = null;
   private messageCallback: ((data: Message) => void) | null = null;
   private reactionCallback: ((data: ReactionUpdateData) => void) | null = null;
+  private typingCallback: ((data: TypingEvent) => void) | null = null;
   private chatListUpdateCallback: ((data: ChatListUpdateData) => void) | null = null;
   private isDisconnecting: boolean = false;
 
@@ -142,6 +144,12 @@ class AblyRealtimeClient implements RealtimeClient {
         });
       }
 
+      if (this.typingCallback) {
+        channel.subscribe('typing', (message) => {
+          this.typingCallback!(message.data as TypingEvent);
+        });
+      }
+
       if (this.chatListUpdateCallback) {
         channel.subscribe('chat-list-update', (message) => {
           this.chatListUpdateCallback!(message.data as ChatListUpdateData);
@@ -200,6 +208,26 @@ class AblyRealtimeClient implements RealtimeClient {
         });
       }
     });
+  }
+
+  onTyping(callback: (data: TypingEvent) => void) {
+    this.typingCallback = callback;
+
+    // Apply to existing chat channels
+    this.channels.forEach((channel, channelName) => {
+      if (channelName.startsWith('chat-')) {
+        channel.subscribe('typing', (message) => {
+          callback(message.data as TypingEvent);
+        });
+      }
+    });
+  }
+
+  sendTyping(chatId: string, userId: string, isTyping: boolean) {
+    if (this.ably) {
+      const channel = this.ably.channels.get(`chat-${chatId}`);
+      channel.publish('typing', { chatId, userId, isTyping });
+    }
   }
 
   onChatListUpdate(callback: (data: ChatListUpdateData) => void) {

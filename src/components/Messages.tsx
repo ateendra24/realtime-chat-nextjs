@@ -40,6 +40,7 @@ export function Messages({
     loadingMoreMessages = false,
     searchResults = [],
     currentSearchResultIndex = 0,
+    typingUsers = new Set(),
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
     function isEmoji(char: string) {
@@ -63,6 +64,13 @@ export function Messages({
             }
         }
     }, [currentSearchResultIndex, searchResults]);
+
+    // Scroll to bottom when typing users change
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [typingUsers, messagesEndRef]);
 
     return (
         <ScrollArea ref={scrollAreaRef} className={`flex-1 overflow-y-auto relative mask-to-top-bottom backdrop-blur-md ${selectedChat && 'bg-[url("/bg.png")] dark:bg-[url("/bg-dark.png")] '}`}>
@@ -249,6 +257,38 @@ export function Messages({
                         })}
                     </div>
                 )}
+
+                {/* Typing Indicator */}
+                {typingUsers && typingUsers.size > 0 && (
+                    <div className="flex items-end gap-2 my-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {selectedChat?.type === 'group' && (
+                            <div className="flex -space-x-2 mb-1">
+                                {Array.from(typingUsers).slice(0, 3).map(userId => {
+                                    const member = selectedChat.members?.find(m => m.id === userId);
+                                    if (!member) return null;
+                                    return (
+                                        <Avatar key={userId} className="w-6 h-6 border-2 border-background">
+                                            <AvatarImage src={member.avatarUrl} alt={member.name} />
+                                            <AvatarFallback className="text-[10px]">{member.name?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                                        </Avatar>
+                                    );
+                                })}
+                                {typingUsers.size > 3 && (
+                                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] border-2 border-background font-medium">
+                                        +{typingUsers.size - 3}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="flex gap-1 h-8 items-center bg-muted px-3 py-2 rounded-2xl rounded-tl-none">
+                            <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-foreground/50 rounded-full animate-bounce"></span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />
             </div>

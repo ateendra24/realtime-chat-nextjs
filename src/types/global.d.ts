@@ -120,6 +120,15 @@ export interface Group {
 // ============================================
 
 /**
+ * Typing event data
+ */
+export interface TypingEvent {
+  chatId: string;
+  userId: string;
+  isTyping: boolean;
+}
+
+/**
  * Reaction update event data
  */
 export interface ReactionUpdateData {
@@ -178,6 +187,8 @@ export interface RealtimeClient {
   onGlobalChatListUpdate: (callback: (data: GlobalChatListUpdateData) => void) => void;
   onUserOnline: (callback: (data: UserPresenceData) => void) => void;
   onUserOffline: (callback: (data: UserPresenceData) => void) => void;
+  onTyping: (callback: (data: TypingEvent) => void) => void;
+  sendTyping: (chatId: string, userId: string, isTyping: boolean) => void;
   emitChatListUpdate: (data: ChatListUpdateData) => void;
   emitGlobalChatListUpdate: (data: GlobalChatListUpdateData) => void;
   cleanup: () => void;
@@ -197,6 +208,7 @@ export interface MessageInputProps {
   sendMessage: () => void;
   selectedChat: Chat | null;
   onImageSent?: (message: Message) => void;
+  onTyping?: (isTyping: boolean) => void;
 }
 
 /**
@@ -217,6 +229,7 @@ export interface MessagesProps {
   loadingMoreMessages?: boolean;
   searchResults?: Message[];
   currentSearchResultIndex?: number;
+  typingUsers?: Set<string>;
 }
 
 /**

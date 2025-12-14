@@ -41,6 +41,7 @@ export default function ChatPage() {
         messagesEndRef,
         user,
         isLoaded,
+        typingUsers,
 
         // Functions
         sendMessage,
@@ -57,6 +58,7 @@ export default function ChatPage() {
         handleEditMessage,
         handleDeleteMessage,
         addImageMessage,
+        handleTyping,
         // Search
         setSearchQuery,
         searchResults,
@@ -146,6 +148,7 @@ export default function ChatPage() {
                         loadingMoreMessages={loadingMoreMessages}
                         searchResults={searchResults}
                         currentSearchResultIndex={currentSearchResultIndex}
+                        typingUsers={typingUsers}
                     />
 
                     <MessageInput
@@ -155,6 +158,7 @@ export default function ChatPage() {
                         onSendMessage={sendMessage}
                         onKeyPress={handleKeyPress}
                         onImageSent={handleImageSent}
+                        onTyping={handleTyping}
                     />
                 </SidebarInset>
 

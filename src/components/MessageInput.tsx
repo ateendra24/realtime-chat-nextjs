@@ -14,6 +14,7 @@ interface LocalMessageInputProps extends Omit<MessageInputProps, 'sendMessage'> 
     onSendMessage: () => void;
     onKeyPress: (e: React.KeyboardEvent) => void;
     onImageSent?: (message: Message) => void; // Callback for when image is sent
+    onTyping?: (isTyping: boolean) => void;
 }
 
 export function MessageInput({
@@ -22,7 +23,8 @@ export function MessageInput({
     setInput,
     onSendMessage,
     onKeyPress,
-    onImageSent
+    onImageSent,
+    onTyping
 }: LocalMessageInputProps) {
     // Hooks must be called before any conditional returns
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -33,6 +35,23 @@ export function MessageInput({
     const pickerContainerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInput(e.target.value);
+
+        if (onTyping) {
+            onTyping(true);
+
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            typingTimeoutRef.current = setTimeout(() => {
+                onTyping(false);
+            }, 2000);
+        }
+    };
 
     const handleEmojiSelect = (emoji: { native: string }) => {
         setInput(input + emoji.native);
@@ -247,7 +266,7 @@ export function MessageInput({
                 {/* Text Input */}
                 <Input
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
                     className="flex-1 h-10 rounded-full bg focus-visible:ring-0 transition-all shadow-none border-secondary-foreground/10"

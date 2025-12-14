@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
-import type { Message, Chat } from '@/types/global';
+import type { Message, Chat, TypingEvent } from '@/types/global';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();
@@ -20,6 +20,10 @@ export function useChatLogic() {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isUpdatingReactionsRef = useRef(false);
+
+    // Typing state
+    const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+    const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     // Message cache: Map<chatId, {messages, cursor, hasMore, timestamp}>
     const messagesCacheRef = useRef<Map<string, {
@@ -87,8 +91,19 @@ export function useChatLogic() {
             if (chatChanged) {
                 prevChatIdRef.current = selectedChat.id;
                 setIsInitialLoad(true); // Set initial load flag for new chat
+
+                // Clear typing state
+                setTypingUsers(new Set());
+                typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+                typingTimeoutsRef.current.clear();
             }
         }
+    }, [selectedChat]);
+
+    // Track selected chat for callbacks to avoid stale closures
+    const selectedChatRef = useRef<Chat | null>(null);
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
     }, [selectedChat]);
 
     // Real-time message listener
@@ -96,10 +111,12 @@ export function useChatLogic() {
         if (!realtimeClient) return;
 
         realtimeClient.onMessage((msg: Message) => {
+            const currentChat = selectedChatRef.current;
+
             // Handle message deletion (should update for everyone, including the author)
             if (msg.isDeleted) {
                 // Update for currently selected chat
-                if (selectedChat && msg.chatId === selectedChat.id) {
+                if (currentChat && msg.chatId === currentChat.id) {
                     setMessages((prev) => {
                         const updatedMessages = prev.map(existingMsg =>
                             existingMsg.id === msg.id
@@ -108,9 +125,9 @@ export function useChatLogic() {
                         );
 
                         // Update cache
-                        const cached = messagesCacheRef.current.get(selectedChat.id);
+                        const cached = messagesCacheRef.current.get(currentChat.id);
                         if (cached) {
-                            messagesCacheRef.current.set(selectedChat.id, {
+                            messagesCacheRef.current.set(currentChat.id, {
                                 ...cached,
                                 messages: updatedMessages,
                                 timestamp: Date.now()
@@ -140,7 +157,7 @@ export function useChatLogic() {
             }
 
             // Handle NEW messages for the currently selected chat (from other users only)
-            if (selectedChat && msg.chatId === selectedChat.id && user && msg.userId !== user.id) {
+            if (currentChat && msg.chatId === currentChat.id && user && msg.userId !== user.id) {
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
@@ -150,9 +167,9 @@ export function useChatLogic() {
                     const updatedMessages = [...prev, msg];
 
                     // Update cache with new message
-                    const cached = messagesCacheRef.current.get(selectedChat.id);
+                    const cached = messagesCacheRef.current.get(currentChat.id);
                     if (cached) {
-                        messagesCacheRef.current.set(selectedChat.id, {
+                        messagesCacheRef.current.set(currentChat.id, {
                             ...cached,
                             messages: updatedMessages,
                             timestamp: Date.now()
@@ -166,10 +183,10 @@ export function useChatLogic() {
                 setTimeout(() => scrollToBottom(true), 100);
 
                 // Mark the message as read since user is viewing this chat
-                markLastMessageAsRead(selectedChat.id, msg.id);
+                markLastMessageAsRead(currentChat.id, msg.id);
             }
             // Handle messages for OTHER chats (not currently selected) - update their cache
-            else if (msg.chatId && msg.chatId !== selectedChat?.id) {
+            else if (msg.chatId && msg.chatId !== currentChat?.id) {
                 const cached = messagesCacheRef.current.get(msg.chatId);
                 if (cached) {
                     // Check if message already exists in cache
@@ -202,9 +219,10 @@ export function useChatLogic() {
             chatId: string;
             userId: string;
         }) => {
+            const currentChat = selectedChatRef.current;
 
             // Only update if it's for the current chat and not from the current user
-            if (selectedChat && data.chatId === selectedChat.id && user && data.userId !== user.id) {
+            if (currentChat && data.chatId === currentChat.id && user && data.userId !== user.id) {
                 isUpdatingReactionsRef.current = true;
                 setMessages(prev => prev.map(msg => {
                     if (msg.id === data.messageId) {
@@ -240,10 +258,47 @@ export function useChatLogic() {
             }
         });
 
+        // Listen for typing events
+        realtimeClient.onTyping((data: TypingEvent) => {
+            const currentChat = selectedChatRef.current;
+            if (currentChat && data.chatId === currentChat.id && user && data.userId !== user.id) {
+                setTypingUsers(prev => {
+                    const newSet = new Set(prev);
+                    if (data.isTyping) {
+                        newSet.add(data.userId);
+
+                        // Clear existing timeout
+                        if (typingTimeoutsRef.current.has(data.userId)) {
+                            clearTimeout(typingTimeoutsRef.current.get(data.userId)!);
+                        }
+
+                        // Set new timeout to clear typing status
+                        const timeout = setTimeout(() => {
+                            setTypingUsers(current => {
+                                const updated = new Set(current);
+                                updated.delete(data.userId);
+                                return updated;
+                            });
+                            typingTimeoutsRef.current.delete(data.userId);
+                        }, 3000); // 3 seconds grace period
+
+                        typingTimeoutsRef.current.set(data.userId, timeout);
+                    } else {
+                        newSet.delete(data.userId);
+                        if (typingTimeoutsRef.current.has(data.userId)) {
+                            clearTimeout(typingTimeoutsRef.current.get(data.userId)!);
+                            typingTimeoutsRef.current.delete(data.userId);
+                        }
+                    }
+                    return newSet;
+                });
+            }
+        });
+
         return () => {
             realtimeClient.cleanup();
         };
-    }, [realtimeClient, user, selectedChat]);
+    }, [realtimeClient, user]); // Removed selectedChat dependency
 
     // Sync user data to database when signing in
     useEffect(() => {
@@ -936,6 +991,13 @@ export function useChatLogic() {
         setChatListRefresh(prev => prev + 1);
     };
 
+    // Function to send typing status
+    const handleTyping = (isTyping: boolean) => {
+        if (selectedChat && user && realtimeClient) {
+            realtimeClient.sendTyping(selectedChat.id, user.id, isTyping);
+        }
+    };
+
     return {
         // State
         messages,
@@ -957,6 +1019,7 @@ export function useChatLogic() {
         isSignedIn,
         isLoaded,
         isInitialLoad,
+        typingUsers,
 
         // Functions
         sendMessage,
@@ -973,6 +1036,7 @@ export function useChatLogic() {
         handleEditMessage,
         handleDeleteMessage,
         addImageMessage,
+        handleTyping,
         // Search
         searchQuery,
         setSearchQuery,
