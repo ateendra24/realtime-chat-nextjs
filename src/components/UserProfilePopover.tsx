@@ -78,7 +78,7 @@ export function UserProfilePopover({
             <PopoverTrigger asChild>
                 {children}
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4 bg-card rounded-3xl" align="center">
+            <PopoverContent className="w-80 p-4 bg-card rounded-3xl" align="start">
                 {loading ? (
                     <div className="flex items-center justify-center py-8">
                         <div className="text-sm text-muted-foreground">Loading...</div>

@@ -7,6 +7,7 @@ import { GroupInfoSheet } from "@/components/GroupInfoSheet";
 import { UserProfilePopover } from "@/components/UserProfilePopover";
 import { SearchMessages } from './SearchMessages';
 import type { ChatHeaderProps } from '@/types/global';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface LocalChatHeaderProps extends ChatHeaderProps {
     onLeaveGroup?: (groupId: string) => void;
@@ -35,6 +36,7 @@ export function ChatHeader({
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const isMobile = useIsMobile();
 
     const handleHeaderClick = () => {
         if (selectedChat?.type === 'group') {
@@ -52,7 +54,7 @@ export function ChatHeader({
         <>
             <div className="flex items-center justify-between px-3 py-2 absolute top-0 left-0 w-full z-10 ">
                 <div className="flex items-center space-x-3">
-                    <SidebarTrigger />
+                    {isMobile && (<SidebarTrigger className='cursor-pointer w-8 h-8' />)}
                     {selectedChat && (
                         <>
                             {selectedChat.type === 'direct' ? (
@@ -104,12 +106,12 @@ export function ChatHeader({
 
                 <div className="flex items-center space-x-2">
                     {selectedChat && (
-                        <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)}>
+                        <Button variant="ghost" size="icon" onClick={() => setShowSearch(!showSearch)} className="cursor-pointer">
                             <Search className="h-5 w-5" />
                         </Button>
                     )}
                     {selectedChat?.type === 'group' && (
-                        <Button variant="ghost" size="icon" onClick={() => setIsGroupInfoOpen(true)}>
+                        <Button variant="ghost" size="icon" onClick={() => setIsGroupInfoOpen(true)} className="cursor-pointer">
                             <Info className="h-5 w-5" />
                         </Button>
                     )}

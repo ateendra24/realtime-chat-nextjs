@@ -444,7 +444,7 @@ export function GroupInfoSheet({
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => handleRemoveMember(member.id, member.name)}
-                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                                                        className="h-8 w-8 p-0 cursor-pointer bg-destructive hover:bg-destructive/80!"
                                                     >
                                                         <UserMinus className="h-4 w-4" />
                                                     </Button>

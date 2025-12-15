@@ -15,11 +15,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "./ui/sidebar";
+import { siteConfig } from "@/config/siteConfig";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger, onTotalUnreadChange }: ChatListProps & { onTotalUnreadChange?: (count: number) => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'direct' | 'group'>('all');
+  const [filter, setFilter] = useState<'all' | 'direct' | 'group' | 'unread'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { client: realtimeClient } = useRealtime();
   const { setTheme, theme } = useTheme();
@@ -252,6 +253,9 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   const filteredAndSortedChats = useMemo(() => {
     const filtered = chats.filter(chat => {
       // First filter by type
+      if (filter === 'unread') {
+        return (chat.unreadCount || 0) > 0;
+      }
       if (filter !== 'all' && chat.type !== filter) {
         return false;
       }
@@ -285,7 +289,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       {/* Header */}
       <div className="px-4 py-2">
         <div className="flex items-end justify-between">
-          <h2 className="text-lg font-semibold">ChatFlow</h2>
+          <h2 className="text-lg font-semibold">{siteConfig.name}</h2>
           <div className="flex space-x-2">
             {theme === "light" ? (
               <Button size="icon" onClick={() => setTheme("dark")} className='cursor-pointer rounded-full'>
@@ -351,6 +355,14 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
           className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
         >
           All
+        </Button>
+        <Button
+          variant={filter === 'unread' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilter('unread')}
+          className="rounded-full text-[12px] px-4! h-7! cursor-pointer"
+        >
+          Unread
         </Button>
         <Button
           variant={filter === 'direct' ? 'default' : 'outline'}

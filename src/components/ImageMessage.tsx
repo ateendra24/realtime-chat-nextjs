@@ -71,7 +71,7 @@ export function ImageMessage({ attachment, content, className = "" }: ImageMessa
         <>
             <div className={`relative group ${className}`}>
                 <div
-                    className="relative max-w-xs cursor-pointer rounded-lg overflow-hidden bg-muted"
+                    className="relative max-w-xs md:max-w-sm cursor-pointer rounded-lg overflow-hidden bg-muted"
                     onClick={() => setIsExpanded(true)}
                 >
                     {!imageLoaded && (
