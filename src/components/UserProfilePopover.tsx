@@ -58,10 +58,10 @@ export function UserProfilePopover({
             }
         };
 
-        if (open && selectedChat?.type === 'direct' && !userProfile) {
+        if (open && selectedChat?.type === 'direct') {
             fetchUserProfile();
         }
-    }, [open, selectedChat, userProfile]);
+    }, [open, selectedChat]);
 
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'Unknown';
