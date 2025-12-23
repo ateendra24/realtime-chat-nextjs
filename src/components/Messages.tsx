@@ -217,6 +217,7 @@ export function Messages({
                                                             onEdit={onEditMessage}
                                                             onDelete={onDeleteMessage}
                                                             messageTimestamp={formattedTime}
+                                                            messageCreatedAt={message.createdAt}
                                                         />
                                                     </div>
                                                 )}

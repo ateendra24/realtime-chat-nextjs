@@ -18,6 +18,7 @@ interface MessageActionsProps {
     onEdit?: (messageId: string) => void;
     onDelete?: (messageId: string) => void;
     messageTimestamp: string;
+    messageCreatedAt?: Date | string;
 }
 
 const COMMON_REACTIONS = [
@@ -33,9 +34,18 @@ export function MessageActions({
     onReaction,
     onEdit,
     onDelete,
-    messageTimestamp
+    messageTimestamp,
+    messageCreatedAt
 }: MessageActionsProps) {
     const [isOpen, setIsOpen] = useState(false);
+
+    // Check if message is within 30 minutes
+    const canEdit = () => {
+        if (!messageCreatedAt) return false;
+        const thirtyMinutesInMs = 30 * 60 * 1000;
+        const messageAge = Date.now() - new Date(messageCreatedAt).getTime();
+        return messageAge <= thirtyMinutesInMs;
+    };
 
     const handleReaction = (emoji: string) => {
         onReaction(messageId, emoji);
@@ -87,10 +97,12 @@ export function MessageActions({
                 {/* Message Actions */}
                 {isOwnMessage && (
                     <>
-                        <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit message
-                        </DropdownMenuItem>
+                        {canEdit() && onEdit && (
+                            <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit message
+                            </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                             onClick={handleDelete}
                             className="cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!"

@@ -15,6 +15,9 @@ interface LocalMessageInputProps extends Omit<MessageInputProps, 'sendMessage'> 
     onKeyPress: (e: React.KeyboardEvent) => void;
     onImageSent?: (message: Message) => void; // Callback for when image is sent
     onTyping?: (isTyping: boolean) => void;
+    editingMessage?: Message | null;
+    onSaveEdit?: () => void;
+    onCancelEdit?: () => void;
 }
 
 export function MessageInput({
@@ -24,7 +27,10 @@ export function MessageInput({
     onSendMessage,
     onKeyPress,
     onImageSent,
-    onTyping
+    onTyping,
+    editingMessage,
+    onSaveEdit,
+    onCancelEdit
 }: LocalMessageInputProps) {
     // Hooks must be called before any conditional returns
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -117,7 +123,9 @@ export function MessageInput({
     };
 
     const handleSend = () => {
-        if (selectedImage) {
+        if (editingMessage && onSaveEdit) {
+            onSaveEdit();
+        } else if (selectedImage) {
             handleSendImage();
         } else {
             onSendMessage();
@@ -174,6 +182,24 @@ export function MessageInput({
 
     return (
         <div className="flex flex-col space-y-2 absolute bottom-0 left-0 w-full">
+            {/* Edit Mode Banner */}
+            {editingMessage && (
+                <div className="flex items-center justify-between p-3 bg-primary/10 backdrop-blur-md mx-3 rounded-lg">
+                    <div className="flex flex-col">
+                        <p className="text-sm font-medium">Editing message</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{editingMessage.content}</p>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCancelEdit}
+                        className="h-8"
+                    >
+                        Cancel
+                    </Button>
+                </div>
+            )}
+
             {/* Image Preview */}
             {selectedImage && imagePreview && (
                 <div className="flex items-center p-3 bg-muted/40 backdrop-blur-md rounded-lg mx-3">
@@ -233,7 +259,7 @@ export function MessageInput({
                     size="icon"
                     className='rounded-full cursor-pointer bg-input/30! w-10 h-10'
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={uploading || !!editingMessage}
                     title="Upload image"
                 >
                     <ImageIcon className="h-5 w-5" />
@@ -267,7 +293,7 @@ export function MessageInput({
                 <Input
                     value={input}
                     onChange={handleInputChange}
-                    placeholder={selectedImage ? "Add a caption..." : "Type a message..."}
+                    placeholder={editingMessage ? "Edit your message..." : selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
                     className="flex-1 h-10 rounded-full bg focus-visible:ring-0 transition-all shadow-none border-secondary-foreground/10"
                     disabled={!selectedChat || uploading}

@@ -57,6 +57,8 @@ export default function ChatPage() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        handleSaveEdit,
+        handleCancelEdit,
         addImageMessage,
         handleTyping,
         // Search
@@ -65,6 +67,7 @@ export default function ChatPage() {
         currentSearchResultIndex,
         handleNextSearchResult,
         handlePrevSearchResult,
+        editingMessage,
     } = useChatLogic();
 
     const handleImageSent = (imageMessage: Message) => {
@@ -158,6 +161,9 @@ export default function ChatPage() {
                         onSendMessage={sendMessage}
                         onKeyPress={handleKeyPress}
                         onImageSent={handleImageSent}
+                        editingMessage={editingMessage}
+                        onSaveEdit={handleSaveEdit}
+                        onCancelEdit={handleCancelEdit}
                         onTyping={handleTyping}
                     />
                 </SidebarInset>

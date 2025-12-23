@@ -47,8 +47,43 @@ export async function PUT(
             })
             .where(eq(messages.id, messageId));
 
-        // Check if this is the last message and update chat cache
+        // Get user info for complete message broadcast
+        const userInfo = await db
+            .select({
+                username: users.username,
+                fullName: users.fullName,
+                avatarUrl: users.avatarUrl,
+            })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        const user = userInfo[0];
+
+        // Broadcast message edit to all chat participants
         const chatId = message[0].chatId;
+        try {
+            await broadcastWithTimeout(
+                CHANNELS.chat(chatId),
+                EVENTS.message,
+                {
+                    id: messageId,
+                    chatId,
+                    userId,
+                    user: user?.fullName || user?.username || 'Unknown User',
+                    avatarUrl: user?.avatarUrl,
+                    content: content.trim(),
+                    isEdited: true,
+                    createdAt: message[0].createdAt,
+                    type: message[0].type || 'text' as const,
+                }
+            );
+        } catch (broadcastError) {
+            console.error('Failed to broadcast edit:', broadcastError);
+            // Continue even if broadcast fails
+        }
+
+        // Check if this is the last message and update chat cache
         const chat = await db
             .select({ lastMessageId: chats.lastMessageId })
             .from(chats)
@@ -75,6 +110,14 @@ export async function PUT(
             { status: 500 }
         );
     }
+}
+
+// PATCH - Alias for PUT (editing)
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: Promise<{ messageId: string }> }
+) {
+    return PUT(request, { params });
 }
 
 // DELETE /api/messages/[messageId] - Delete message (soft delete)

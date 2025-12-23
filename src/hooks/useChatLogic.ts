@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
 import type { Message, Chat, TypingEvent } from '@/types/global';
+import { toast } from 'sonner';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();
@@ -37,6 +38,9 @@ export function useChatLogic() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Message[]>([]);
     const [currentSearchResultIndex, setCurrentSearchResultIndex] = useState(0);
+
+    // Edit message state
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
     // Perform local search when query or messages change
     useEffect(() => {
@@ -151,6 +155,56 @@ export function useChatLogic() {
                             messages: updatedMessages,
                             timestamp: Date.now()
                         });
+                    }
+                }
+                return; // Don't process as new message
+            }
+
+            // Handle message EDIT (should update for everyone, including the author)
+            if (msg.isEdited && !msg.isDeleted) {
+                // Update for currently selected chat
+                if (currentChat && msg.chatId === currentChat.id) {
+                    setMessages((prev) => {
+                        // Check if message exists in current state
+                        const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
+                        if (!messageExists) return prev;
+
+                        const updatedMessages = prev.map(existingMsg =>
+                            existingMsg.id === msg.id
+                                ? { ...existingMsg, content: msg.content, isEdited: true }
+                                : existingMsg
+                        );
+
+                        // Update cache
+                        const cached = messagesCacheRef.current.get(currentChat.id);
+                        if (cached) {
+                            messagesCacheRef.current.set(currentChat.id, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
+
+                        return updatedMessages;
+                    });
+                }
+                // Update cache for other chats
+                else if (msg.chatId) {
+                    const cached = messagesCacheRef.current.get(msg.chatId);
+                    if (cached) {
+                        const messageExists = cached.messages.some(existingMsg => existingMsg.id === msg.id);
+                        if (messageExists) {
+                            const updatedMessages = cached.messages.map(existingMsg =>
+                                existingMsg.id === msg.id
+                                    ? { ...existingMsg, content: msg.content, isEdited: true }
+                                    : existingMsg
+                            );
+                            messagesCacheRef.current.set(msg.chatId, {
+                                ...cached,
+                                messages: updatedMessages,
+                                timestamp: Date.now()
+                            });
+                        }
                     }
                 }
                 return; // Don't process as new message
@@ -810,10 +864,27 @@ export function useChatLogic() {
         }
     };
 
-    const handleEditMessage = async (_messageId: string) => {
-        // For now, just log that editing was requested
-        // In a full implementation, you'd open an edit modal or inline editor
-        // This would typically open an edit dialog or enable inline editing
+    const handleEditMessage = async (messageId: string) => {
+        const message = messages.find(m => m.id === messageId);
+        if (!message) return;
+
+        // Check if message is within 30 minutes of sending
+        const thirtyMinutesInMs = 30 * 60 * 1000;
+        const messageAge = Date.now() - new Date(message.createdAt).getTime();
+
+        if (messageAge > thirtyMinutesInMs) {
+            toast.error('Cannot edit messages older than 30 minutes');
+            return;
+        }
+
+        // Check if user owns the message
+        if (message.userId !== user?.id) {
+            toast.error('You can only edit your own messages');
+            return;
+        }
+
+        setEditingMessage(message);
+        setInput(message.content);
     };
 
     const handleDeleteMessage = async (messageId: string) => {
@@ -853,6 +924,68 @@ export function useChatLogic() {
         } catch (error) {
             console.error('Error deleting message:', error);
         }
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingMessage || !input.trim()) return;
+
+        try {
+            const updatedContent = input.trim();
+            const messageId = editingMessage.id;
+
+            // Optimistically update UI
+            setMessages(prev => {
+                const updatedMessages = prev.map(msg =>
+                    msg.id === messageId
+                        ? { ...msg, content: updatedContent, isEdited: true }
+                        : msg
+                );
+
+                // Update cache with edited message
+                if (selectedChat?.id) {
+                    const cached = messagesCacheRef.current.get(selectedChat.id);
+                    if (cached) {
+                        messagesCacheRef.current.set(selectedChat.id, {
+                            ...cached,
+                            messages: updatedMessages,
+                            timestamp: Date.now()
+                        });
+                    }
+                }
+
+                return updatedMessages;
+            });
+
+            const res = await fetch(`/api/messages/${messageId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: updatedContent }),
+            });
+
+            if (!res.ok) {
+                throw new Error('Failed to edit message');
+            }
+
+            // Clear editing state
+            setEditingMessage(null);
+            setInput('');
+
+            // Update chat list
+            setChatListRefresh(prev => prev + 1);
+        } catch (error) {
+            console.error('Error editing message:', error);
+            // Revert optimistic update
+            if (editingMessage) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === editingMessage.id ? editingMessage : msg
+                ));
+            }
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingMessage(null);
+        setInput('');
     };
 
     // Group management functions
@@ -1020,6 +1153,7 @@ export function useChatLogic() {
         isLoaded,
         isInitialLoad,
         typingUsers,
+        editingMessage,
 
         // Functions
         sendMessage,
@@ -1035,6 +1169,8 @@ export function useChatLogic() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        handleSaveEdit,
+        handleCancelEdit,
         addImageMessage,
         handleTyping,
         // Search
