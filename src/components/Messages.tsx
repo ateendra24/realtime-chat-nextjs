@@ -170,7 +170,7 @@ export function Messages({
                                             <div className={`relative w-fit ${isCurrentUser && 'ml-auto'} group`}>
                                                 {/* Message Content */}
                                                 {message.isDeleted ? (
-                                                    <div className={`px-4 py-2.5 rounded-2xl w-fit relative shadow-sm ${isCurrentUser ? 'bg-primary/90 ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
+                                                    <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm ${isCurrentUser ? 'bg-primary/90 ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
                                                         <p className="text-sm">
                                                             <em className="text-muted-foreground/80">This message was deleted</em>
                                                         </p>
@@ -190,7 +190,7 @@ export function Messages({
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <div className={`px-4 py-2.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
+                                                    <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
                                                         <p className="leading-relaxed text-inherit">
                                                             {message.content}
                                                             {message.isEdited && (
