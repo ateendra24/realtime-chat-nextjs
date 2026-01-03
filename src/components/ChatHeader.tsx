@@ -4,7 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
-import { UserProfilePopover } from "@/components/UserProfilePopover";
+import { DirectChatInfoSheet } from "@/components/DirectChatInfoSheet";
 import { SearchMessages } from './SearchMessages';
 import type { ChatHeaderProps } from '@/types/global';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -34,6 +34,7 @@ export function ChatHeader({
     onPrevSearchResult,
 }: LocalChatHeaderProps) {
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
+    const [isDirectInfoOpen, setIsDirectInfoOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const isMobile = useIsMobile();
@@ -41,6 +42,8 @@ export function ChatHeader({
     const handleHeaderClick = () => {
         if (selectedChat?.type === 'group') {
             setIsGroupInfoOpen(true);
+        } else if (selectedChat?.type === 'direct') {
+            setIsDirectInfoOpen(true);
         }
     };
 
@@ -58,27 +61,25 @@ export function ChatHeader({
                     {selectedChat && (
                         <>
                             {selectedChat.type === 'direct' ? (
-                                <UserProfilePopover selectedChat={selectedChat}>
-                                    <div className="flex items-center space-x-3 cursor-pointer">
-                                        <Avatar className="w-8 h-8">
-                                            <AvatarImage
-                                                src={selectedChat.avatarUrl || undefined}
-                                                alt={selectedChat.displayName || "Chat"}
-                                            />
-                                            <AvatarFallback>
-                                                {selectedChat.displayName?.[0]?.toUpperCase() || 'C'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <h2 className="font-semibold">
-                                                {selectedChat.displayName || selectedChat.name || 'Chat'}
-                                            </h2>
-                                            <p className="text-xs text-muted-foreground">
-                                                Direct message
-                                            </p>
-                                        </div>
+                                <>
+                                    <Avatar className="w-8 h-8 cursor-pointer" onClick={handleHeaderClick}>
+                                        <AvatarImage
+                                            src={selectedChat.avatarUrl || undefined}
+                                            alt={selectedChat.displayName || "Chat"}
+                                        />
+                                        <AvatarFallback>
+                                            {selectedChat.displayName?.[0]?.toUpperCase() || 'C'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="cursor-pointer" onClick={handleHeaderClick}>
+                                        <h2 className="font-semibold">
+                                            {selectedChat.displayName || selectedChat.name || 'Chat'}
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground">
+                                            Direct message
+                                        </p>
                                     </div>
-                                </UserProfilePopover>
+                                </>
                             ) : (
                                 <>
                                     <Avatar className="w-8 h-8 cursor-pointer" onClick={handleHeaderClick}>
@@ -110,8 +111,8 @@ export function ChatHeader({
                             <Search className="h-5 w-5" />
                         </Button>
                     )}
-                    {selectedChat?.type === 'group' && (
-                        <Button variant="ghost" size="icon" onClick={() => setIsGroupInfoOpen(true)} className="cursor-pointer">
+                    {selectedChat && (
+                        <Button variant="ghost" size="icon" onClick={handleHeaderClick} className="cursor-pointer">
                             <Info className="h-5 w-5" />
                         </Button>
                     )}
@@ -139,6 +140,14 @@ export function ChatHeader({
                     onUpdateGroup={onUpdateGroup}
                     onRemoveMember={onRemoveMember}
                     onRefreshMembers={onRefreshMembers}
+                />
+            )}
+
+            {selectedChat?.type === 'direct' && (
+                <DirectChatInfoSheet
+                    isOpen={isDirectInfoOpen}
+                    onOpenChange={setIsDirectInfoOpen}
+                    selectedChat={selectedChat}
                 />
             )}
         </>
