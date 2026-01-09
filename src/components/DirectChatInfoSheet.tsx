@@ -9,7 +9,7 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, AtSign } from "lucide-react";
+import { Calendar, AtSign, Mail } from "lucide-react";
 import type { Chat } from '@/types/global';
 import moment from 'moment';
 
@@ -28,8 +28,6 @@ export function DirectChatInfoSheet({
     if (!selectedChat || selectedChat.type !== 'direct') {
         return null;
     }
-
-    console.table(selectedChat);
 
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -79,6 +77,17 @@ export function DirectChatInfoSheet({
                             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                                 <AtSign className="h-4 w-4" />
                                 <span>{selectedChat.username}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Email */}
+                    {selectedChat.email && (
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">Email</label>
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                                <Mail className="h-4 w-4" />
+                                <span>{selectedChat.email}</span>
                             </div>
                         </div>
                     )}

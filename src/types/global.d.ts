@@ -12,6 +12,7 @@ export interface MessageAttachment {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  blobUrl: string;
   thumbnailUrl?: string;
   width?: number;
   height?: number;
@@ -79,6 +80,7 @@ export interface Chat {
   isOwner?: boolean;
   displayName?: string;
   username?: string;
+  email?: string;
   isOnline?: boolean;
   unreadCount?: number;
   members?: GroupMember[];

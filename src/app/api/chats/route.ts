@@ -24,6 +24,7 @@ interface ChatRow {
   unread_count: string;
   other_full_name: string | null;
   other_username: string | null;
+  other_email: string | null;
   other_avatar_url: string | null;
   other_is_online: boolean | null;
 }
@@ -133,6 +134,7 @@ export async function GET() {
           uc.id as chat_id,
           u.full_name,
           u.username,
+          u.email,
           u.avatar_url,
           u.is_online
         FROM user_chats uc
@@ -146,6 +148,7 @@ export async function GET() {
         COALESCE(unr.unread_count, 0) as unread_count,
         dcp.full_name as other_full_name,
         dcp.username as other_username,
+        dcp.email as other_email,
         dcp.avatar_url as other_avatar_url,
         dcp.is_online as other_is_online
       FROM user_chats uc
@@ -179,6 +182,7 @@ export async function GET() {
       if (row.name) chat.name = row.name;
       if (row.description) chat.description = row.description;
       if (isDirectChat && row.other_username) chat.username = row.other_username;
+      if (isDirectChat && row.other_email) chat.email = row.other_email;
       if (isDirectChat) chat.isOnline = row.other_is_online || false;
       if (row.last_message_at) chat.lastMessageAt = row.last_message_at;
       if (row.message_count) chat.messageCount = row.message_count;
