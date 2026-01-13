@@ -9,10 +9,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash } from "lucide-react";
+import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash, Copy } from "lucide-react";
+import { MessageType } from "@/types/global";
 
 interface MessageActionsProps {
     messageId: string;
+    content: string;
+    type: MessageType;
     isOwnMessage: boolean;
     onReaction: (messageId: string, emoji: string) => void;
     onEdit?: (messageId: string) => void;
@@ -30,6 +33,8 @@ const COMMON_REACTIONS = [
 
 export function MessageActions({
     messageId,
+    content,
+    type,
     isOwnMessage,
     onReaction,
     onEdit,
@@ -85,7 +90,7 @@ export function MessageActions({
                             key={emoji}
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-base hover:bg-muted"
+                            className="h-8 w-8 p-0 text-lg hover:bg-muted cursor-pointer"
                             onClick={() => handleReaction(emoji)}
                             title={label}
                         >
@@ -94,20 +99,26 @@ export function MessageActions({
                     ))}
                 </div>
 
+                {type === 'text' && (
+                    <DropdownMenuItem className="cursor-pointer rounded-lg" onClick={() => navigator.clipboard.writeText(content)} >
+                        <Copy className="mr-1 h-4 w-4" /> Copy
+                    </DropdownMenuItem>
+                )}
+
                 {/* Message Actions */}
                 {isOwnMessage && (
                     <>
                         {canEdit() && onEdit && (
-                            <DropdownMenuItem onClick={handleEdit} className="cursor-pointer">
-                                <Edit className="mr-2 h-4 w-4" />
+                            <DropdownMenuItem onClick={handleEdit} className="cursor-pointer rounded-lg">
+                                <Edit className="mr-1 h-4 w-4" />
                                 Edit message
                             </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
                             onClick={handleDelete}
-                            className="cursor-pointer hover:bg-destructive! hover:text-destructive-foreground!"
+                            className="cursor-pointer rounded-lg hover:bg-destructive! hover:text-destructive-foreground!"
                         >
-                            <Trash className="mr-2 h-4 w-4 hover:text-destructive-foreground!" />
+                            <Trash className="mr-1 h-4 w-4 hover:text-destructive-foreground!" />
                             Delete message
                         </DropdownMenuItem>
                     </>

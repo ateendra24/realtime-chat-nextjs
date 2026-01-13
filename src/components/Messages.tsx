@@ -212,6 +212,8 @@ export function Messages({
                                                     <div className={`absolute top-0 ${isCurrentUser ? '-left-7' : '-right-7'}`}>
                                                         <MessageActions
                                                             messageId={message.id}
+                                                            content={message.content}
+                                                            type={message.type || 'text'}
                                                             isOwnMessage={message.userId === currentUserId}
                                                             onReaction={onReaction || (() => { })}
                                                             onEdit={onEditMessage}
