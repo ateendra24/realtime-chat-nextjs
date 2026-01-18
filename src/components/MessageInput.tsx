@@ -41,7 +41,18 @@ export function MessageInput({
     const pickerContainerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Auto-focus input on chat selection
+    useEffect(() => {
+        if (selectedChat && inputRef.current) {
+            // Small timeout to ensure component is fully mounted/visible
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 10);
+        }
+    }, [selectedChat]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInput(e.target.value);
@@ -291,6 +302,7 @@ export function MessageInput({
 
                 {/* Text Input */}
                 <Input
+                    ref={inputRef}
                     value={input}
                     onChange={handleInputChange}
                     placeholder={editingMessage ? "Edit your message..." : selectedImage ? "Add a caption..." : "Type a message..."}

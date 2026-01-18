@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronUp, ChevronDown, X } from "lucide-react";
@@ -23,6 +23,17 @@ export function SearchMessages({
     handlePrevResult,
     onClose,
 }: SearchMessagesProps) {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        // Focus the input when the component mounts
+        if (inputRef.current) {
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 10);
+        }
+    }, []);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -33,6 +44,7 @@ export function SearchMessages({
             <div className="w-72 sm:w-96 p-2 border rounded-2xl shadow bg-background/60 backdrop-blur-sm absolute top-14 right-5 z-10">
                 <div className="flex items-center space-x-2">
                     <Input
+                        ref={inputRef}
                         type="text"
                         placeholder="Search messages..."
                         value={searchQuery}
