@@ -42,6 +42,56 @@ export function useChatLogic() {
     // Edit message state
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
+    // --- Web Notifications Support ---
+    useEffect(() => {
+        // Request permission on mount if default
+        if (typeof window !== 'undefined' && "Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission().catch(console.error);
+        }
+    }, []);
+
+    const showMessageNotification = (msg: Message) => {
+        if (typeof window === 'undefined' || !("Notification" in window)) return;
+        if (msg.userId === user?.id) return; // Don't notify own messages
+
+        const triggerNotification = () => {
+            try {
+                const body = msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content;
+                const title = `New message from ${msg.user}`;
+
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: msg.avatarUrl || '/logo.png',
+                    tag: `msg-${msg.id}`,
+                });
+
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            } catch (error) {
+                console.error("Error showing notification:", error);
+            }
+        };
+
+        const isChatOpen = selectedChatRef.current?.id === msg.chatId;
+        const isFocused = document.visibilityState === 'visible' && document.hasFocus();
+
+        if (Notification.permission === "granted") {
+            if (isChatOpen && isFocused) {
+                return;
+            }
+            triggerNotification();
+        } else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    triggerNotification();
+                }
+            });
+        }
+    };
+    // ---------------------------------
+
     // Perform local search when query or messages change
     useEffect(() => {
         if (searchQuery) {
@@ -212,6 +262,7 @@ export function useChatLogic() {
 
             // Handle NEW messages for the currently selected chat (from other users only)
             if (currentChat && msg.chatId === currentChat.id && user && msg.userId !== user.id) {
+                showMessageNotification(msg); // Show notification
                 setMessages((prev) => {
                     // Check if message already exists to prevent duplicates
                     const messageExists = prev.some(existingMsg => existingMsg.id === msg.id);
@@ -241,6 +292,11 @@ export function useChatLogic() {
             }
             // Handle messages for OTHER chats (not currently selected) - update their cache
             else if (msg.chatId && msg.chatId !== currentChat?.id) {
+                // Show notification for other chats if it's not from current user
+                if (user && msg.userId !== user.id) {
+                    showMessageNotification(msg);
+                }
+
                 const cached = messagesCacheRef.current.get(msg.chatId);
                 if (cached) {
                     // Check if message already exists in cache
