@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { messages, users, messageReactions, messageAttachments, chatParticipants, chats } from "@/db/schema";
+import { messages, users, messageReactions, messageAttachments, chatParticipants, chats, blockedUsers } from "@/db/schema";
 import { eq, desc, sql, inArray, and, lt } from "drizzle-orm";
 import { CHANNELS, EVENTS, broadcastWithTimeout } from "@/lib/ably";
 
@@ -234,9 +234,12 @@ export async function POST(
                 fullName: users.fullName,
                 username: users.username,
                 avatarUrl: users.avatarUrl,
+                // Chat fields
+                chatType: chats.type,
             })
             .from(chatParticipants)
             .innerJoin(users, eq(users.id, chatParticipants.userId))
+            .innerJoin(chats, eq(chats.id, chatParticipants.chatId))
             .where(and(
                 eq(chatParticipants.chatId, chatId),
                 eq(chatParticipants.userId, userId)
@@ -248,6 +251,29 @@ export async function POST(
         }
 
         const userInfo = participantAndUser[0];
+
+        // Block check for direct chats (Optimized: 1 query)
+        // Checks if any OTHER participant in this chat has a block relationship with the sender
+        if (userInfo.chatType === 'direct') {
+            const hasBlock = await db.execute(sql`
+                SELECT 1 
+                FROM ${chatParticipants} cp
+                JOIN ${blockedUsers} bu ON 
+                    (bu.blocker_id = cp.user_id AND bu.blocked_id = ${userId})
+                    OR 
+                    (bu.blocker_id = ${userId} AND bu.blocked_id = cp.user_id)
+                WHERE cp.chat_id = ${chatId}
+                AND cp.user_id != ${userId}
+                LIMIT 1
+             `);
+
+            // Handle postgres-js v3.4.x+ row format
+            const rows = (Array.isArray(hasBlock) ? hasBlock : (hasBlock as any).rows);
+
+            if (rows && rows.length > 0) {
+                return NextResponse.json({ error: "Cannot send message: Blocked" }, { status: 403 });
+            }
+        }
 
         // Insert the new message
         const [newMessage] = await db.insert(messages)

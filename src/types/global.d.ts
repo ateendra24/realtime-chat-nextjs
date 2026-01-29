@@ -80,6 +80,7 @@ export interface Chat {
   isOwner?: boolean;
   displayName?: string;
   username?: string;
+  otherUserId?: string;
   email?: string;
   isOnline?: boolean;
   unreadCount?: number;
@@ -189,12 +190,21 @@ export interface RealtimeClient {
   onGlobalChatListUpdate: (callback: (data: GlobalChatListUpdateData) => void) => void;
   onUserOnline: (callback: (data: UserPresenceData) => void) => void;
   onUserOffline: (callback: (data: UserPresenceData) => void) => void;
+  onUserBlocked: (callback: (data: BlockEvent) => void) => void;
+  onUserUnblocked: (callback: (data: BlockEvent) => void) => void;
   onTyping: (callback: (data: TypingEvent) => void) => void;
   sendTyping: (chatId: string, userId: string, isTyping: boolean) => void;
   emitChatListUpdate: (data: ChatListUpdateData) => void;
   emitGlobalChatListUpdate: (data: GlobalChatListUpdateData) => void;
+  joinPresence: (userId: string) => void;
+  leavePresence: (userId: string) => void;
   cleanup: () => void;
   isConnected: boolean;
+}
+
+export interface BlockEvent {
+  blockerId: string;
+  blockedId: string;
 }
 
 // ============================================
