@@ -125,6 +125,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   createdChats: many(chats),
   messageReactions: many(messageReactions),
   sessions: many(userSessions),
+  blockedUsers: many(blockedUsers, { relationName: "blockedBy" }), // Users this user has blocked
+  blockedByUsers: many(blockedUsers, { relationName: "blocking" }), // Users who have blocked this user
 }));
 
 export const chatsRelations = relations(chats, ({ many, one }) => ({
@@ -198,5 +200,30 @@ export const userSessionsRelations = relations(userSessions, ({ one }) => ({
   user: one(users, {
     fields: [userSessions.userId],
     references: [users.id],
+  }),
+}));
+
+// Blocked users table
+export const blockedUsers = pgTable("blocked_users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  blockerId: text("blocker_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  blockedId: text("blocked_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueBlock: unique().on(table.blockerId, table.blockedId),
+  blockerIdx: index("blocked_users_blocker_id_idx").on(table.blockerId),
+  blockedIdx: index("blocked_users_blocked_id_idx").on(table.blockedId),
+}));
+
+export const blockedUsersRelations = relations(blockedUsers, ({ one }) => ({
+  blocker: one(users, {
+    fields: [blockedUsers.blockerId],
+    references: [users.id],
+    relationName: "blockedBy",
+  }),
+  blocked: one(users, {
+    fields: [blockedUsers.blockedId],
+    references: [users.id],
+    relationName: "blocking",
   }),
 }));

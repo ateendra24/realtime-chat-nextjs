@@ -1,1 +1,0 @@
-ALTER TABLE "chats" ADD COLUMN "avatar_file_id" text;
