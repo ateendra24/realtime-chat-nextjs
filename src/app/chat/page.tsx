@@ -149,7 +149,6 @@ export default function ChatPage() {
                         blockedUsers={blockedUsers}
                         onBlockUser={blockUser}
                         onUnblockUser={unblockUser}
-                        currentUserId={user?.id}
                     />
 
                     <Messages
@@ -172,7 +171,7 @@ export default function ChatPage() {
 
                     {isChatBlocked ? (
                         <div className="p-4 border-t text-center text-muted-foreground bg-muted/30">
-                            {blockedByUsers?.has(selectedChat?.otherUserId!)
+                            {blockedByUsers?.has(selectedChat?.otherUserId ?? "")
                                 ? "You have been blocked by this user."
                                 : "You have blocked this user."}
                         </div>

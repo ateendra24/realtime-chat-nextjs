@@ -1,10 +1,8 @@
 "use client";
-import { ArrowRight, Check, Shield, Zap, Globe, Code, BarChart3, MessageSquare, Users, Image as ImageIcon, Lock } from 'lucide-react'
+import { ArrowRight, Zap, MessageSquare, Image as ImageIcon, Lock } from 'lucide-react'
 import React from 'react'
 import { Button } from '../ui/button'
 import Link from 'next/link'
-import { Input } from '../ui/input'
-import { Badge } from '../ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { motion } from 'motion/react'
 import { AnimatedShinyText } from '../ui/animated-shiny-text';

@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
-import type { Message, Chat, TypingEvent, BlockEvent } from '@/types/global';
+import type { Message, Chat, TypingEvent } from '@/types/global';
 import { toast } from 'sonner';
 
 export function useChatLogic() {
@@ -54,7 +54,7 @@ export function useChatLogic() {
         }
     }, []);
 
-    const showMessageNotification = (msg: Message) => {
+    const showMessageNotification = useCallback((msg: Message) => {
         if (typeof window === 'undefined' || !("Notification" in window)) return;
         if (msg.userId === user?.id) return; // Don't notify own messages
 
@@ -73,7 +73,7 @@ export function useChatLogic() {
                     window.focus();
                     notification.close();
                 };
-            } catch (error) {
+            } catch {
                 // Ignore notification errors
             }
         };
@@ -93,7 +93,7 @@ export function useChatLogic() {
                 }
             });
         }
-    };
+    }, [user?.id]);
     // ---------------------------------
 
     // Perform local search when query or messages change
@@ -412,7 +412,7 @@ export function useChatLogic() {
         return () => {
             realtimeClient.cleanup();
         };
-    }, [realtimeClient, user]); // Removed selectedChat dependency
+    }, [realtimeClient, user, showMessageNotification]); // Removed selectedChat dependency
 
     // Sync user data to database when signing in
     useEffect(() => {
@@ -493,7 +493,7 @@ export function useChatLogic() {
             });
             if (!res.ok) throw new Error('Failed to block');
             setBlockedUsers(prev => new Set(prev).add(userId));
-        } catch (error) {
+        } catch {
             toast.error("Failed to block user");
         }
     };
@@ -510,7 +510,7 @@ export function useChatLogic() {
                 next.delete(userId);
                 return next;
             });
-        } catch (error) {
+        } catch {
             toast.error("Failed to unblock user");
         }
     };
@@ -1141,7 +1141,7 @@ export function useChatLogic() {
                 // Real-time updates are handled by the API route
                 // No need to emit here
             }
-        } catch (error) {
+        } catch {
             // Ignore error
         }
     };
@@ -1170,7 +1170,7 @@ export function useChatLogic() {
                 // Real-time updates are handled by the API route
                 // No need to emit here
             }
-        } catch (error) {
+        } catch {
             // Ignore error
         }
     };
@@ -1191,7 +1191,7 @@ export function useChatLogic() {
                 // Real-time updates are handled by the API route
                 // No need to emit here
             }
-        } catch (error) {
+        } catch {
             // Ignore error
         }
     };
@@ -1213,7 +1213,7 @@ export function useChatLogic() {
                     memberCount: membersData.members?.length || membersData.memberCount
                 } : null);
             }
-        } catch (error) {
+        } catch {
             // Ignore error
         }
     };
