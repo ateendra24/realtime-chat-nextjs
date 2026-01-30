@@ -8,7 +8,8 @@ import type {
   ChatListUpdateData,
   GlobalChatListUpdateData,
   UserPresenceData,
-  TypingEvent
+  TypingEvent,
+  BlockEvent
 } from '@/types/global';
 
 // Ably implementation for real-time functionality with E2EE support
@@ -21,6 +22,8 @@ class AblyRealtimeClient implements RealtimeClient {
   private reactionCallback: ((data: ReactionUpdateData) => void) | null = null;
   private typingCallback: ((data: TypingEvent) => void) | null = null;
   private chatListUpdateCallback: ((data: ChatListUpdateData) => void) | null = null;
+  private userBlockedCallback: ((data: BlockEvent) => void) | null = null;
+  private userUnblockedCallback: ((data: BlockEvent) => void) | null = null;
   private isDisconnecting: boolean = false;
 
   async connect() {
@@ -282,6 +285,63 @@ class AblyRealtimeClient implements RealtimeClient {
     const channel = this.channels.get('global-updates');
     channel?.subscribe('user-offline', (message) => {
       callback(message.data as UserPresenceData);
+    });
+  }
+
+  joinPresence(userId: string) {
+    // Join user's personal channel to receive specific events like blocks
+    if (this.ably) {
+      const channelName = `presence-${userId}`;
+      const channel = this.ably.channels.get(channelName);
+
+      // Listen for blocked/unblocked events on this channel
+      if (this.userBlockedCallback) {
+        channel.subscribe('user-blocked', (message) => {
+          this.userBlockedCallback!(message.data as BlockEvent);
+        });
+      }
+
+      if (this.userUnblockedCallback) {
+        channel.subscribe('user-unblocked', (message) => {
+          this.userUnblockedCallback!(message.data as BlockEvent);
+        });
+      }
+
+      this.channels.set(channelName, channel);
+    }
+  }
+
+  leavePresence(userId: string) {
+    if (this.ably) {
+      const channelName = `presence-${userId}`;
+      if (this.channels.has(channelName)) {
+        this.channels.get(channelName)?.unsubscribe();
+        this.channels.delete(channelName);
+      }
+    }
+  }
+
+  onUserBlocked(callback: (data: BlockEvent) => void) {
+    this.userBlockedCallback = callback;
+    // Re-attach if channels already exist
+    this.channels.forEach((channel, name) => {
+      if (name.startsWith('presence-')) {
+        channel.subscribe('user-blocked', (message) => {
+          callback(message.data as BlockEvent);
+        });
+      }
+    });
+  }
+
+  onUserUnblocked(callback: (data: BlockEvent) => void) {
+    this.userUnblockedCallback = callback;
+    // Re-attach if channels already exist
+    this.channels.forEach((channel, name) => {
+      if (name.startsWith('presence-')) {
+        channel.subscribe('user-unblocked', (message) => {
+          callback(message.data as BlockEvent);
+        });
+      }
     });
   }
 

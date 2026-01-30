@@ -9,20 +9,35 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, AtSign, Mail } from "lucide-react";
+import { Calendar, AtSign, Mail, Ban, CheckCircle } from "lucide-react";
 import type { Chat } from '@/types/global';
 import moment from 'moment';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface DirectChatInfoSheetProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     selectedChat: Chat | null;
+    isBlocked: boolean;
+    onToggleBlock: () => void;
 }
 
 export function DirectChatInfoSheet({
     isOpen,
     onOpenChange,
     selectedChat,
+    isBlocked,
+    onToggleBlock,
 }: DirectChatInfoSheetProps) {
     // Only show for direct chats
     if (!selectedChat || selectedChat.type !== 'direct') {
@@ -93,12 +108,62 @@ export function DirectChatInfoSheet({
                     )}
 
                     {/* Created/Joined Date */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1">
                         <label className="text-sm font-medium">Created</label>
                         <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             <span>{moment(selectedChat.createdAt).format('MMMM D, YYYY')}</span>
                         </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant={isBlocked ? "outline" : "destructive"}
+                                    className="w-full cursor-pointer"
+                                >
+                                    {isBlocked ? (
+                                        <>
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            Unblock User
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Ban className="mr-2 h-4 w-4" />
+                                            Block User
+                                        </>
+                                    )}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        {isBlocked ? "Unblock User" : "Block User"}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {isBlocked
+                                            ? "Are you sure you want to unblock this user? They will be able to send you messages again."
+                                            : "Are you sure you want to block this user? They will not be able to send you messages."
+                                        }
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="outline" className='cursor-pointer'>Cancel</Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                        <Button
+                                            onClick={onToggleBlock}
+                                            variant={isBlocked ? "default" : "destructive"}
+                                            className='cursor-pointer'
+                                        >
+                                            {isBlocked ? "Unblock" : "Block"}
+                                        </Button>
+                                    </DialogClose>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
             </SheetContent>

@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRealtime } from "@/hooks/useRealtime";
 import { useUser } from "@clerk/nextjs";
-import type { Message, Chat, TypingEvent } from '@/types/global';
+import type { Message, Chat, TypingEvent, BlockEvent } from '@/types/global';
 import { toast } from 'sonner';
 
 export function useChatLogic() {
     const { client: realtimeClient } = useRealtime();
     const { user, isSignedIn, isLoaded } = useUser();
     const [messages, setMessages] = useState<Message[]>([]);
+
+    // Blocking state
+    const [blockedUsers, setBlockedUsers] = useState<Set<string>>(new Set());
+    const [blockedByUsers, setBlockedByUsers] = useState<Set<string>>(new Set());
+
     const [input, setInput] = useState("");
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
     const [showCreateGroup, setShowCreateGroup] = useState(false);
@@ -17,7 +22,6 @@ export function useChatLogic() {
     const [hasMoreMessages, setHasMoreMessages] = useState(false);
     const [loadingMoreMessages, setLoadingMoreMessages] = useState(false);
     const [nextCursor, setNextCursor] = useState<string | null>(null);
-    // const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const isUpdatingReactionsRef = useRef(false);
@@ -70,7 +74,7 @@ export function useChatLogic() {
                     notification.close();
                 };
             } catch (error) {
-                console.error("Error showing notification:", error);
+                // Ignore notification errors
             }
         };
 
@@ -433,7 +437,84 @@ export function useChatLogic() {
         };
 
         syncUser();
+        syncUser();
     }, [user, isSignedIn]);
+
+    // Fetch blocked users and listen for events
+    useEffect(() => {
+        if (!user || !realtimeClient) return;
+
+        // Fetch initial list
+        fetch('/api/users/block')
+            .then(res => res.json())
+            .then(data => {
+                if (data.blocked) setBlockedUsers(new Set(data.blocked));
+                if (data.blockedBy) setBlockedByUsers(new Set(data.blockedBy));
+            })
+            .catch(err => console.error("Failed to fetch blocked users:", err));
+
+        // Join presence channel
+        realtimeClient.joinPresence(user.id);
+
+        realtimeClient.onUserBlocked((data) => {
+            if (data.blockerId === user.id) {
+                setBlockedUsers(prev => new Set(prev).add(data.blockedId));
+            } else if (data.blockedId === user.id) {
+                setBlockedByUsers(prev => new Set(prev).add(data.blockerId));
+            }
+        });
+
+        realtimeClient.onUserUnblocked((data) => {
+            if (data.blockerId === user.id) {
+                setBlockedUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(data.blockedId);
+                    return next;
+                });
+            } else if (data.blockedId === user.id) {
+                setBlockedByUsers(prev => {
+                    const next = new Set(prev);
+                    next.delete(data.blockerId);
+                    return next;
+                });
+            }
+        });
+
+        return () => {
+            realtimeClient.leavePresence(user.id);
+        };
+    }, [user, realtimeClient]);
+
+    const blockUser = async (userId: string) => {
+        try {
+            const res = await fetch('/api/users/block', {
+                method: 'POST',
+                body: JSON.stringify({ blockedId: userId }),
+            });
+            if (!res.ok) throw new Error('Failed to block');
+            setBlockedUsers(prev => new Set(prev).add(userId));
+        } catch (error) {
+            toast.error("Failed to block user");
+        }
+    };
+
+    const unblockUser = async (userId: string) => {
+        try {
+            const res = await fetch('/api/users/block', {
+                method: 'DELETE',
+                body: JSON.stringify({ blockedId: userId }),
+            });
+            if (!res.ok) throw new Error('Failed to unblock');
+            setBlockedUsers(prev => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+            });
+        } catch (error) {
+            toast.error("Failed to unblock user");
+        }
+    };
+
 
     // Join all user chats when real-time client connects
     useEffect(() => {
@@ -557,14 +638,12 @@ export function useChatLogic() {
                     });
 
                     // Mark the message as read for the sender (don't await to keep it fast)
-                    markLastMessageAsRead(chatId, result.message.id).catch(console.error);
+                    // Mark the message as read for the sender (don't await to keep it fast)
+                    markLastMessageAsRead(chatId, result.message.id).catch(() => { });
 
                     // Trigger chat list refresh (don't await to keep it fast)
                     setChatListRefresh(prev => prev + 1);
                 } else {
-                    const errorText = await response.text();
-                    console.error('Error saving message to database:', response.status, errorText);
-
                     // Replace optimistic message with error state
                     setMessages((prev) => prev.map(prevMsg =>
                         prevMsg.id === tempId
@@ -574,7 +653,6 @@ export function useChatLogic() {
                 }
             } catch (error) {
                 console.error("Error saving message:", error);
-
                 // Replace optimistic message with error state
                 setMessages((prev) => prev.map(prevMsg =>
                     prevMsg.id === tempId
@@ -598,8 +676,6 @@ export function useChatLogic() {
 
         // Check if we have cached messages for this chat
         const cached = messagesCacheRef.current.get(chat.id);
-        // const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-        // const isCacheValid = cached && (Date.now() - cached.timestamp) < CACHE_DURATION;
 
         // STALE-WHILE-REVALIDATE: Show cached messages immediately if available
         if (cached) {
@@ -618,7 +694,7 @@ export function useChatLogic() {
             // Mark last message as read (non-blocking)
             if (cached.messages.length > 0) {
                 const lastMessage = cached.messages[cached.messages.length - 1];
-                markLastMessageAsRead(chat.id, lastMessage.id).catch(console.error);
+                markLastMessageAsRead(chat.id, lastMessage.id).catch(() => { });
             }
         } else {
             // No cache - show loading state
@@ -630,7 +706,6 @@ export function useChatLogic() {
         setHasMoreMessages(false);
         setNextCursor(null);
         setLoadingMoreMessages(false);
-        // setIsLoadingOlderMessages(false);
 
         if (chat.id) {
             try {
@@ -1065,11 +1140,9 @@ export function useChatLogic() {
 
                 // Real-time updates are handled by the API route
                 // No need to emit here
-            } else {
-                console.error("Failed to leave group:", response.statusText);
             }
         } catch (error) {
-            console.error("Error leaving group:", error);
+            // Ignore error
         }
     };
 
@@ -1096,11 +1169,9 @@ export function useChatLogic() {
 
                 // Real-time updates are handled by the API route
                 // No need to emit here
-            } else {
-                console.error("Failed to update group:", response.statusText);
             }
         } catch (error) {
-            console.error("Error updating group:", error);
+            // Ignore error
         }
     };
 
@@ -1119,11 +1190,9 @@ export function useChatLogic() {
 
                 // Real-time updates are handled by the API route
                 // No need to emit here
-            } else {
-                console.error("Failed to remove member:", response.statusText);
             }
         } catch (error) {
-            console.error("Error removing member:", error);
+            // Ignore error
         }
     };
 
@@ -1143,11 +1212,9 @@ export function useChatLogic() {
                     members: membersData.members,
                     memberCount: membersData.members?.length || membersData.memberCount
                 } : null);
-            } else {
-                console.error("Failed to refresh group members:", membersResponse.statusText);
             }
         } catch (error) {
-            console.error("Error refreshing group members:", error);
+            // Ignore error
         }
     };
 
@@ -1236,5 +1303,11 @@ export function useChatLogic() {
         currentSearchResultIndex,
         handleNextSearchResult,
         handlePrevSearchResult,
+
+        // Blocking
+        blockedUsers,
+        blockedByUsers,
+        blockUser,
+        unblockUser,
     };
 }

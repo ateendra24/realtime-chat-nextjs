@@ -68,7 +68,19 @@ export default function ChatPage() {
         handleNextSearchResult,
         handlePrevSearchResult,
         editingMessage,
+        blockUser,
+        unblockUser,
+        blockedUsers,
+        blockedByUsers,
     } = useChatLogic();
+
+    // Check if current chat is blocked
+    const isChatBlocked = React.useMemo(() => {
+        if (!selectedChat || selectedChat.type !== 'direct' || !selectedChat.otherUserId) return false;
+
+        // Blocked by me OR Blocked by them
+        return blockedUsers?.has(selectedChat.otherUserId) || blockedByUsers?.has(selectedChat.otherUserId);
+    }, [selectedChat, blockedUsers, blockedByUsers]);
 
     const handleImageSent = (imageMessage: Message) => {
         // Add the image message immediately to the sender's view (optimistic update)
@@ -134,6 +146,10 @@ export default function ChatPage() {
                         currentSearchResultIndex={currentSearchResultIndex}
                         onNextSearchResult={handleNextSearchResult}
                         onPrevSearchResult={handlePrevSearchResult}
+                        blockedUsers={blockedUsers}
+                        onBlockUser={blockUser}
+                        onUnblockUser={unblockUser}
+                        currentUserId={user?.id}
                     />
 
                     <Messages
@@ -154,18 +170,26 @@ export default function ChatPage() {
                         typingUsers={typingUsers}
                     />
 
-                    <MessageInput
-                        selectedChat={selectedChat}
-                        input={input}
-                        setInput={setInput}
-                        onSendMessage={sendMessage}
-                        onKeyPress={handleKeyPress}
-                        onImageSent={handleImageSent}
-                        editingMessage={editingMessage}
-                        onSaveEdit={handleSaveEdit}
-                        onCancelEdit={handleCancelEdit}
-                        onTyping={handleTyping}
-                    />
+                    {isChatBlocked ? (
+                        <div className="p-4 border-t text-center text-muted-foreground bg-muted/30">
+                            {blockedByUsers?.has(selectedChat?.otherUserId!)
+                                ? "You have been blocked by this user."
+                                : "You have blocked this user."}
+                        </div>
+                    ) : (
+                        <MessageInput
+                            selectedChat={selectedChat}
+                            input={input}
+                            setInput={setInput}
+                            onSendMessage={sendMessage}
+                            onKeyPress={handleKeyPress}
+                            onImageSent={handleImageSent}
+                            editingMessage={editingMessage}
+                            onSaveEdit={handleSaveEdit}
+                            onCancelEdit={handleCancelEdit}
+                            onTyping={handleTyping}
+                        />
+                    )}
                 </SidebarInset>
 
                 <ChatDialogs

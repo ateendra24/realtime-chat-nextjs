@@ -19,6 +19,10 @@ interface LocalChatHeaderProps extends ChatHeaderProps {
     currentSearchResultIndex?: number;
     onNextSearchResult?: () => void;
     onPrevSearchResult?: () => void;
+    blockedUsers?: Set<string>;
+    onBlockUser?: (userId: string) => void;
+    onUnblockUser?: (userId: string) => void;
+    currentUserId?: string;
 }
 
 export function ChatHeader({
@@ -32,6 +36,10 @@ export function ChatHeader({
     currentSearchResultIndex,
     onNextSearchResult,
     onPrevSearchResult,
+    blockedUsers,
+    onBlockUser,
+    onUnblockUser,
+    currentUserId,
 }: LocalChatHeaderProps) {
     const [isGroupInfoOpen, setIsGroupInfoOpen] = useState(false);
     const [isDirectInfoOpen, setIsDirectInfoOpen] = useState(false);
@@ -148,6 +156,18 @@ export function ChatHeader({
                     isOpen={isDirectInfoOpen}
                     onOpenChange={setIsDirectInfoOpen}
                     selectedChat={selectedChat}
+                    isBlocked={!!((selectedChat as any)?.otherUserId && blockedUsers?.has((selectedChat as any)?.otherUserId))}
+                    onToggleBlock={() => {
+                        const otherUserId = (selectedChat as any)?.otherUserId;
+                        if (otherUserId) {
+                            const isBlocked = blockedUsers?.has(otherUserId);
+                            if (isBlocked) {
+                                onUnblockUser?.(otherUserId);
+                            } else {
+                                onBlockUser?.(otherUserId);
+                            }
+                        }
+                    }}
                 />
             )}
         </>

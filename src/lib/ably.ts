@@ -24,6 +24,8 @@ export const EVENTS = {
   global_chat_list_update: 'global-chat-list-update',
   user_online: 'user-online',
   user_offline: 'user-offline',
+  user_blocked: 'user-blocked',
+  user_unblocked: 'user-unblocked',
 } as const;
 
 /**
