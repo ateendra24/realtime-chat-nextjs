@@ -6,7 +6,7 @@ import { blockedUsers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { broadcastWithTimeout, CHANNELS, EVENTS } from "@/lib/ably";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const user = await currentUser();
         if (!user) {

@@ -268,7 +268,7 @@ export async function POST(
              `);
 
             // Handle postgres-js v3.4.x+ row format
-            const rows = (Array.isArray(hasBlock) ? hasBlock : (hasBlock as any).rows);
+            const rows = (Array.isArray(hasBlock) ? hasBlock : (hasBlock as { rows: unknown[] }).rows);
 
             if (rows && rows.length > 0) {
                 return NextResponse.json({ error: "Cannot send message: Blocked" }, { status: 403 });

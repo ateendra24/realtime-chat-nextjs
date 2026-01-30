@@ -184,8 +184,11 @@ export async function GET() {
       // Add optional fields only if they exist (reduces payload size)
       if (row.name) chat.name = row.name;
       if (row.description) chat.description = row.description;
-      if (isDirectChat && row.other_user_id) chat.otherUserId = row.other_user_id;
       if (isDirectChat && row.other_username) chat.username = row.other_username;
+
+      // Add other user ID for direct chats (crucial for blocking etc)
+      if (isDirectChat && row.other_user_id) chat.otherUserId = row.other_user_id;
+
       if (isDirectChat && row.other_email) chat.email = row.other_email;
       if (isDirectChat) chat.isOnline = row.other_is_online || false;
       if (row.last_message_at) chat.lastMessageAt = row.last_message_at;
