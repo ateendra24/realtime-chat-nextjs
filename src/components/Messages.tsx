@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Loader2, ChevronUp } from "lucide-react";
+import { MessageSquare, Loader2, ChevronUp, ArrowDown } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
@@ -25,6 +25,92 @@ const formatDateSeparator = (date: moment.Moment) => {
     }
 };
 
+const renderMessageContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return content.split(urlRegex).map((part, index) => {
+        if (part.match(urlRegex)) {
+            return (
+                <a
+                    key={index}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-current hover:opacity-80 break-all"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {part}
+                </a>
+            );
+        }
+        return part;
+    });
+};
+
+const ScrollToBottomButton = React.memo(({
+    scrollAreaRef,
+    messagesEndRef
+}: {
+    scrollAreaRef: React.RefObject<HTMLDivElement | null>;
+    messagesEndRef: React.RefObject<HTMLDivElement | null>;
+}) => {
+    const [showScrollBottom, setShowScrollBottom] = React.useState(false);
+
+    useEffect(() => {
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (!scrollContainer) return;
+
+        let ticking = false;
+
+        const handleScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    if (!scrollContainer) return;
+                    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+                    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+                    const shouldShow = distanceFromBottom > 300;
+
+                    setShowScrollBottom(prev => {
+                        if (prev !== shouldShow) return shouldShow;
+                        return prev;
+                    });
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll);
+
+        // Initial check with a small delay to ensure layout
+        const timeoutId = setTimeout(handleScroll, 100);
+
+        return () => {
+            scrollContainer.removeEventListener('scroll', handleScroll);
+            clearTimeout(timeoutId);
+        };
+    }, [scrollAreaRef]);
+
+    const handleScrollToBottom = () => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+            setShowScrollBottom(false);
+        }
+    };
+
+    if (!showScrollBottom) return null;
+
+    return (
+        <Button
+            variant="secondary"
+            size="icon"
+            className="absolute bottom-16 right-4 rounded-full shadow-lg z-20 bg-background backdrop-blur hover:bg-background border animate-in fade-in zoom-in duration-200 cursor-pointer"
+            onClick={handleScrollToBottom}
+        >
+            <ArrowDown className="h-5 w-5" />
+        </Button>
+    );
+});
+
 export function Messages({
     selectedChat,
     messages,
@@ -43,6 +129,8 @@ export function Messages({
     typingUsers = new Set(),
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+
     function isEmoji(char: string) {
         if (char.length === 2) {
             const emojiRegex = /\p{Extended_Pictographic}/u;
@@ -192,7 +280,7 @@ export function Messages({
                                                 ) : (
                                                     <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
                                                         <p className="leading-relaxed text-inherit">
-                                                            {message.content}
+                                                            {renderMessageContent(message.content)}
                                                             {message.isEdited && (
                                                                 <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
                                                             )}
@@ -295,6 +383,13 @@ export function Messages({
                 {/* Scroll anchor - always at the bottom */}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Scroll to Bottom Button */}
+            <ScrollToBottomButton
+                scrollAreaRef={scrollAreaRef}
+                messagesEndRef={messagesEndRef}
+            />
+
             <ProgressiveBlur height="8%" position="bottom" />
             <ProgressiveBlur height="8%" position="top" />
         </ScrollArea>
