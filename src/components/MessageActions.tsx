@@ -45,7 +45,7 @@ export function MessageActions({
     const [isOpen, setIsOpen] = useState(false);
 
     // Check if message is within 30 minutes
-    const canEdit = () => {
+    const canModify = () => {
         if (!messageCreatedAt) return false;
         const thirtyMinutesInMs = 30 * 60 * 1000;
         const messageAge = Date.now() - new Date(messageCreatedAt).getTime();
@@ -108,19 +108,21 @@ export function MessageActions({
                 {/* Message Actions */}
                 {isOwnMessage && (
                     <>
-                        {canEdit() && onEdit && (
+                        {canModify() && onEdit && (
                             <DropdownMenuItem onClick={handleEdit} className="cursor-pointer rounded-lg">
                                 <Edit className="mr-1 h-4 w-4" />
                                 Edit message
                             </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                            onClick={handleDelete}
-                            className="cursor-pointer rounded-lg hover:bg-destructive! hover:text-destructive-foreground!"
-                        >
-                            <Trash className="mr-1 h-4 w-4 hover:text-destructive-foreground!" />
-                            Delete message
-                        </DropdownMenuItem>
+                        {canModify() && (
+                            <DropdownMenuItem
+                                onClick={handleDelete}
+                                className="cursor-pointer rounded-lg hover:bg-destructive! hover:text-destructive-foreground!"
+                            >
+                                <Trash className="mr-1 h-4 w-4 hover:text-destructive-foreground!" />
+                                Delete message
+                            </DropdownMenuItem>
+                        )}
                     </>
                 )}
 

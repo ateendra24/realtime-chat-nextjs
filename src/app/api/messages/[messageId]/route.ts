@@ -38,6 +38,12 @@ export async function PUT(
             return NextResponse.json({ error: 'Message not found or unauthorized' }, { status: 404 });
         }
 
+        // Check if message is older than 30 minutes
+        const messageAge = Date.now() - new Date(message[0].createdAt).getTime();
+        if (messageAge > 30 * 60 * 1000) {
+            return NextResponse.json({ error: 'Cannot edit message older than 30 minutes' }, { status: 403 });
+        }
+
         // Update the message
         await db
             .update(messages)
@@ -145,6 +151,12 @@ export async function DELETE(
 
         if (message.length === 0) {
             return NextResponse.json({ error: 'Message not found or unauthorized' }, { status: 404 });
+        }
+
+        // Check if message is older than 30 minutes
+        const messageAge = Date.now() - new Date(message[0].createdAt).getTime();
+        if (messageAge > 30 * 60 * 1000) {
+            return NextResponse.json({ error: 'Cannot delete message older than 30 minutes' }, { status: 403 });
         }
 
         // Get chatId early for later use
