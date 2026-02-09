@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MessageSquare, Loader2, ChevronUp, ArrowDown } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
@@ -170,9 +171,30 @@ export function Messages({
                         <p className="text-sm opacity-70">Select a chat from the sidebar or create a new group to start messaging.</p>
                     </div>
                 ) : messagesLoading ? (
-                    <div className="h-[75vh] flex flex-col items-center justify-center text-center text-muted-foreground py-4">
-                        <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-primary" />
-                        <p className="text-sm font-medium">Loading messages...</p>
+                    <div className="flex flex-col justify-end space-y-6 p-4 min-h-[50vh]">
+                        {Array.from({ length: 5 }).map((_, i) => {
+                            const widths = [180, 260, 320, 200, 140, 280, 240];
+                            const width = widths[i % widths.length];
+                            return (
+                                <React.Fragment key={i}>
+                                    {(i === 0 || i === 4) && (
+                                        <div className="flex justify-center my-6">
+                                            <Skeleton className="h-6 w-24 rounded-full opacity-60" />
+                                        </div>
+                                    )}
+                                    <div className={`flex items-end gap-2 ${i % 2 === 0 ? 'flex-row' : 'flex-row-reverse'}`}>
+                                        {selectedChat.type === 'group' && (<Skeleton className="h-8 w-8 rounded-full shrink-0" />)}
+                                        <div className={`space-y-1.5 ${i % 2 === 0 ? 'items-start' : 'items-end'} flex flex-col`}>
+                                            {selectedChat.type === 'group' && (<Skeleton className="h-3 w-20 opacity-50" />)}
+                                            <Skeleton
+                                                className={`h-10 rounded-2xl ${i % 2 === 0 ? 'rounded-tl-none' : 'rounded-tr-none'}`}
+                                                style={{ width: `${width}px` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </React.Fragment>
+                            );
+                        })}
                     </div>
                 ) : messages.length === 0 ? (
                     <div className="h-[75vh] flex flex-col items-center justify-center text-center text-muted-foreground py-8">
