@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import NumberFlow from '@number-flow/react';
 import { MessageSquare, Loader2, ChevronUp, ArrowDown } from "lucide-react";
 import { MessageActions } from "./MessageActions";
 import { ImageMessage } from "./ImageMessage";
@@ -281,9 +282,12 @@ export function Messages({
                                                 {/* Message Content */}
                                                 {message.isDeleted ? (
                                                     <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm ${isCurrentUser ? 'bg-primary/90 ml-auto' : 'bg-muted'} ${message.isOptimistic ? 'opacity-70' : ''}`}>
-                                                        <p className="text-sm">
+                                                        <div className="text-sm text-left clearfix">
                                                             <em className="text-muted-foreground/80">This message was deleted</em>
-                                                        </p>
+                                                            <span className={`float-right text-[10px] text-muted-foreground/70 ml-3 mt-1`}>
+                                                                {formattedTime}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 ) : message.type === 'image' && message.attachment ? (
                                                     <div className={`relative ${message.isOptimistic ? 'opacity-70' : ''}`}>
@@ -292,6 +296,9 @@ export function Messages({
                                                             content={message.content}
                                                             className={isCurrentUser ? 'ml-auto' : ''}
                                                         />
+                                                        <span className={`text-[10px] text-muted-foreground/70 mt-1 block text-right`}>
+                                                            {formattedTime}
+                                                        </span>
                                                         {/* Show loading indicator for optimistic messages */}
                                                         {message.isOptimistic && (
                                                             <div className="absolute -right-1 -top-1 bg-background rounded-full p-1 shadow-sm">
@@ -301,12 +308,15 @@ export function Messages({
                                                     </div>
                                                 ) : (
                                                     <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
-                                                        <p className="leading-relaxed text-inherit">
+                                                        <div className="leading-relaxed text-inherit text-left clearfix">
                                                             {renderMessageContent(message.content)}
                                                             {message.isEdited && (
                                                                 <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
                                                             )}
-                                                        </p>
+                                                            <span className={`float-right text-[10px] opacity-70 ml-3 mt-1.5 ${isEmoji(message.content) ? 'text-muted-foreground' : 'text-inherit'}`}>
+                                                                {formattedTime}
+                                                            </span>
+                                                        </div>
 
                                                         {/* Show loading indicator for optimistic messages */}
                                                         {message.isOptimistic && (
@@ -342,26 +352,25 @@ export function Messages({
                                                         return (
                                                             <div
                                                                 key={reaction?.id || `${reaction?.emoji || 'emoji'}-${reaction?.count || 0}-${index}`}
-                                                                className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs border cursor-pointer transition-all hover:scale-105 shadow-sm ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
+                                                                className={`flex items-center space-x-1 px-1 py-0.5 rounded-full text-xs border cursor-pointer transition-all hover:scale-105 shadow-sm ${(reaction && typeof reaction.hasReacted === 'boolean' && reaction.hasReacted)
                                                                     ? 'bg-primary/25 border-primary text-black dark:text-white font-medium'
                                                                     : 'bg-muted border-muted-foreground/20 hover:bg-muted/80'
                                                                     }`}
                                                                 title={`${reaction?.count || 0} reaction${(reaction?.count || 0) > 1 ? 's' : ''}`}
                                                                 onClick={() => reaction?.emoji && onReaction?.(message.id, reaction.emoji)}
                                                             >
-                                                                <span>{reaction?.emoji || '?'}
-                                                                    {reaction?.count > 1 ? reaction.count : null}
+                                                                <span className="flex items-center gap-0.5">{reaction?.emoji || '?'}
+                                                                    <NumberFlow
+                                                                        value={reaction.count}
+                                                                        format={{ notation: 'compact' }}
+                                                                        locales="en-US"
+                                                                        className='pr-1'
+                                                                    />
                                                                 </span>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
-                                            )}
-
-                                            {shouldShowTimestamp && (
-                                                <span className={`text-[10px] text-muted-foreground/70 mt-1 block ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                                                    {formattedTime}
-                                                </span>
                                             )}
                                         </div>
                                     </div>

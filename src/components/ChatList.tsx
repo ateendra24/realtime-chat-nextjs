@@ -16,6 +16,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "./ui/sidebar";
 import { siteConfig } from "@/config/siteConfig";
+import NumberFlow from "@number-flow/react";
 
 export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger, onTotalUnreadChange }: ChatListProps & { onTotalUnreadChange?: (count: number) => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -479,8 +480,14 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                             {typeof chat.unreadCount === 'number' &&
                               chat.unreadCount > 0 &&
                               selectedChatId !== chat.id && (
-                                <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5">
-                                  {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                                <Badge variant="destructive" className="text-xs min-w-[20px] rounded-full px-1.5 py-0">
+                                  {chat.unreadCount > 99 ? '99+' : (
+                                    <NumberFlow
+                                      value={chat.unreadCount}
+                                      format={{ notation: 'compact' }}
+                                      locales="en-US"
+                                    />
+                                  )}
                                 </Badge>
                               )}
                             {/* Role badge for group chats */}
