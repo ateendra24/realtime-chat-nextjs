@@ -112,6 +112,7 @@ const ScrollToBottomButton = React.memo(({
         </Button>
     );
 });
+ScrollToBottomButton.displayName = 'ScrollToBottomButton';
 
 export function Messages({
     selectedChat,
@@ -241,11 +242,7 @@ export function Messages({
                             // Date and grouping logic
                             const showDate = index === 0 || !moment(message.createdAt).isSame(moment(messages[index - 1].createdAt), 'day');
                             const isSameUserAsPrev = index > 0 && messages[index - 1].userId === message.userId && !showDate;
-                            const isSameUserAsNext = index < messages.length - 1 && messages[index + 1].userId === message.userId &&
-                                moment(message.createdAt).isSame(moment(messages[index + 1].createdAt), 'day');
-
                             const shouldShowAvatar = isGroupChat && !isSameUserAsPrev;
-                            const shouldShowTimestamp = !isSameUserAsNext;
 
                             return (
                                 <React.Fragment key={`${message.id}-${index}`}>
