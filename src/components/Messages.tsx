@@ -305,7 +305,7 @@ export function Messages({
                                                     </div>
                                                 ) : (
                                                     <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
-                                                        <div className="leading-relaxed text-inherit text-left clearfix">
+                                                        <div className="leading-relaxed text-inherit text-left clearfix whitespace-pre-wrap break-words">
                                                             {renderMessageContent(message.content)}
                                                             {message.isEdited && (
                                                                 <span className="text-xs opacity-70 ml-2 italic">(edited)</span>

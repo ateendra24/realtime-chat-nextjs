@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Send, Smile, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
@@ -9,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { useImageUpload, createImagePreview, revokeImagePreview } from '@/hooks/useImageUpload';
 import { toast } from 'sonner';
 import type { Message, MessageInputProps } from '@/types/global';
+import { Textarea } from './ui/textarea';
 
 interface LocalMessageInputProps extends Omit<MessageInputProps, 'sendMessage'> {
     onSendMessage: () => void;
@@ -41,8 +41,9 @@ export function MessageInput({
     const pickerContainerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const prevChatIdRef = useRef<string | null>(null);
 
     // Auto-focus input on chat selection
     useEffect(() => {
@@ -54,7 +55,38 @@ export function MessageInput({
         }
     }, [selectedChat]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Handle Chat Switching (Load Drafts)
+    useEffect(() => {
+        if (!selectedChat) return;
+        
+        if (selectedChat.id !== prevChatIdRef.current) {
+            if (!editingMessage) {
+                const draft = localStorage.getItem(`chat_draft_${selectedChat.id}`);
+                setInput(draft || '');
+            }
+            prevChatIdRef.current = selectedChat.id;
+        }
+    }, [selectedChat, editingMessage, setInput]);
+
+    // Handle Textarea Auto-Resize & Save Drafts
+    useEffect(() => {
+        // Auto-resize
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto'; // Reset height to recalculate properly
+            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+        }
+
+        // Save/Remove Draft
+        if (selectedChat && prevChatIdRef.current === selectedChat.id && !editingMessage) {
+            if (input.trim()) {
+                localStorage.setItem(`chat_draft_${selectedChat.id}`, input);
+            } else {
+                localStorage.removeItem(`chat_draft_${selectedChat.id}`);
+            }
+        }
+    }, [input, selectedChat, editingMessage]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInput(e.target.value);
 
         if (onTyping) {
@@ -143,12 +175,17 @@ export function MessageInput({
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSend();
+            if (input.trim() || selectedImage) {
+                handleSend();
+            }
         } else {
-            onKeyPress(e);
+            // Typing event for page.tsx but ensure we don't trigger its custom 'Enter' action.
+            if (e.key !== 'Enter') {
+                onKeyPress(e as unknown as React.KeyboardEvent);
+            }
         }
     };
 
@@ -253,7 +290,7 @@ export function MessageInput({
             )}
 
             {/* Input Row */}
-            <div className="relative flex items-center px-3 py-2 space-x-2">
+            <div className="relative flex items-end px-3 py-2 space-x-2">
                 {/* Hidden file input */}
                 <input
                     ref={fileInputRef}
@@ -301,13 +338,14 @@ export function MessageInput({
                 ) : null}
 
                 {/* Text Input */}
-                <Input
+                <Textarea
                     ref={inputRef}
                     value={input}
                     onChange={handleInputChange}
                     placeholder={editingMessage ? "Edit your message..." : selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 h-10 rounded-full bg focus-visible:ring-0 transition-all shadow-none border-secondary-foreground/10"
+                    rows={1}
+                    className="flex-1 min-h-[40px] max-h-[120px] py-[10px] px-4 rounded-[20px] text-sm bg-background focus-visible:ring-0 transition-all shadow-none border border-secondary-foreground/10 resize-none outline-none no-scrollbar"
                     disabled={!selectedChat || uploading}
                 />
 
