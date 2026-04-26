@@ -10,6 +10,7 @@ import { ImageMessage } from "./ImageMessage";
 import moment from 'moment';
 import type { MessagesProps } from '@/types/global';
 import { ProgressiveBlur } from './ui/progressive-blur';
+import { AnimatePresence, motion } from 'motion/react';
 
 // Helper function to format date separator
 const formatDateSeparator = (date: moment.Moment) => {
@@ -99,17 +100,28 @@ const ScrollToBottomButton = React.memo(({
         }
     };
 
-    if (!showScrollBottom) return null;
-
     return (
-        <Button
-            variant="secondary"
-            size="icon"
-            className="absolute bottom-16 right-4 rounded-full shadow-lg z-20 bg-background backdrop-blur hover:bg-background border animate-in fade-in zoom-in duration-200 cursor-pointer"
-            onClick={handleScrollToBottom}
-        >
-            <ArrowDown className="h-5 w-5" />
-        </Button>
+        <AnimatePresence>
+            {showScrollBottom && (
+                <motion.div
+                    key="scroll-to-bottom"
+                    layoutId="scroll-to-bottom"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute bottom-32 right-4"
+                >
+                    <Button
+                        size="icon"
+                        className="rounded-full shadow-lg z-20 bg-black hover:bg-black/90 dark:bg-white dark:hover:bg-white cursor-pointer"
+                        onClick={handleScrollToBottom}
+                    >
+                        <ArrowDown className="!h-5 !w-5 text-white dark:text-black" />
+                    </Button>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 });
 ScrollToBottomButton.displayName = 'ScrollToBottomButton';

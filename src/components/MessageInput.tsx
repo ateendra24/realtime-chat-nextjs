@@ -36,6 +36,7 @@ export function MessageInput({
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isTextareaMinHeight, setIsTextareaMinHeight] = useState(true);
     const { theme } = useTheme();
     const { uploadImage, uploading, progress, error, clearError } = useImageUpload();
     const pickerContainerRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,7 @@ export function MessageInput({
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const prevChatIdRef = useRef<string | null>(null);
+    const minHeight = 40;
 
     // Auto-focus input on chat selection
     useEffect(() => {
@@ -58,7 +60,7 @@ export function MessageInput({
     // Handle Chat Switching (Load Drafts)
     useEffect(() => {
         if (!selectedChat) return;
-        
+
         if (selectedChat.id !== prevChatIdRef.current) {
             if (!editingMessage) {
                 const draft = localStorage.getItem(`chat_draft_${selectedChat.id}`);
@@ -73,7 +75,9 @@ export function MessageInput({
         // Auto-resize
         if (inputRef.current) {
             inputRef.current.style.height = 'auto'; // Reset height to recalculate properly
-            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+            const newHeight = Math.min(inputRef.current.scrollHeight, 120);
+            inputRef.current.style.height = `${newHeight}px`;
+            setIsTextareaMinHeight(newHeight === minHeight);
         }
 
         // Save/Remove Draft
@@ -345,7 +349,7 @@ export function MessageInput({
                     placeholder={editingMessage ? "Edit your message..." : selectedImage ? "Add a caption..." : "Type a message..."}
                     onKeyDown={handleKeyDown}
                     rows={1}
-                    className="flex-1 min-h-[40px] max-h-[120px] py-[10px] px-4 rounded-[20px] text-sm bg-background focus-visible:ring-0 transition-all shadow-none border border-secondary-foreground/10 resize-none outline-none no-scrollbar"
+                    className={`flex-1 min-h-[40px] max-h-[120px] py-[10px] px-4 rounded-[20px] text-sm ${isTextareaMinHeight ? 'bg-input/30' : 'bg-input/80'} dark:${isTextareaMinHeight ? 'bg-input/30' : 'bg-input/80'} focus-visible:ring-0 transition-all shadow-none border border-secondary-foreground/10 resize-none outline-none no-scrollbar`}
                     disabled={!selectedChat || uploading}
                 />
 
