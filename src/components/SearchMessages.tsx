@@ -40,8 +40,9 @@ export function SearchMessages({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
+            className="absolute top-14 right-5 z-10"
         >
-            <div className="w-72 sm:w-96 p-2 border rounded-2xl shadow bg-background/60 backdrop-blur-sm absolute top-14 right-5 z-10">
+            <div className="w-72 sm:w-96 p-2 border rounded-2xl shadow bg-background/60 backdrop-blur-sm">
                 <div className="flex items-center space-x-2">
                     <Input
                         ref={inputRef}
@@ -68,6 +69,5 @@ export function SearchMessages({
                 </div>
             </div>
         </motion.div>
-
     );
 }

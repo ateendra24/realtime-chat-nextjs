@@ -6,6 +6,7 @@ import { Info, Search } from "lucide-react";
 import { GroupInfoSheet } from "@/components/GroupInfoSheet";
 import { DirectChatInfoSheet } from "@/components/DirectChatInfoSheet";
 import { SearchMessages } from './SearchMessages';
+import { AnimatePresence } from "framer-motion";
 import type { ChatHeaderProps } from '@/types/global';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -125,17 +126,20 @@ export function ChatHeader({
                 </div>
             </div>
 
-            {showSearch && (
-                <SearchMessages
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    searchResultCount={searchResultCount || 0}
-                    currentResultIndex={currentSearchResultIndex || 0}
-                    handleNextResult={onNextSearchResult || (() => { })}
-                    handlePrevResult={onPrevSearchResult || (() => { })}
-                    onClose={() => { setShowSearch(false); setSearchQuery(''); }}
-                />
-            )}
+            <AnimatePresence>
+                {showSearch && (
+                    <SearchMessages
+                        key="search-messages"
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        searchResultCount={searchResultCount || 0}
+                        currentResultIndex={currentSearchResultIndex || 0}
+                        handleNextResult={onNextSearchResult || (() => { })}
+                        handlePrevResult={onPrevSearchResult || (() => { })}
+                        onClose={() => { setShowSearch(false); setSearchQuery(''); }}
+                    />
+                )}
+            </AnimatePresence>
 
             {selectedChat?.type === 'group' && (
                 <GroupInfoSheet
