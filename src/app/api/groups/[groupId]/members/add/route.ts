@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
 import { chatParticipants, users, chats } from '@/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { sendSystemMessage } from '@/lib/systemMessage';
 
 // POST /api/groups/[groupId]/members/add - Add member to group
 export async function POST(
@@ -92,6 +93,25 @@ export async function POST(
             .update(chats)
             .set({ updatedAt: new Date() })
             .where(eq(chats.id, groupId));
+
+        // Fetch display names for both the acting admin and the added users
+        const allRelevantIds = [userId, ...newUserIds];
+        const relevantUsers = await db
+            .select({ id: users.id, fullName: users.fullName, username: users.username })
+            .from(users)
+            .where(inArray(users.id, allRelevantIds));
+
+        const adminUser = relevantUsers.find(u => u.id === userId);
+        const adminName = adminUser?.fullName || adminUser?.username || 'Admin';
+
+        const addedNames = newUserIds
+            .map(id => {
+                const u = relevantUsers.find(u => u.id === id);
+                return u?.fullName || u?.username || 'Someone';
+            })
+            .join(', ');
+
+        await sendSystemMessage(groupId, `${adminName} added ${addedNames} to the group`, userId);
 
         return NextResponse.json({
             message: `Successfully added ${newUserIds.length} member(s) to the group`,

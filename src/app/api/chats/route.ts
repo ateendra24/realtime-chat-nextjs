@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { chats, chatParticipants } from "@/db/schema";
-import { sql } from "drizzle-orm";
+import { chats, chatParticipants, users } from "@/db/schema";
+import { sql, eq } from "drizzle-orm";
+import { sendSystemMessage } from "@/lib/systemMessage";
 
 interface ChatRow {
   id: string;
@@ -73,6 +74,18 @@ export async function POST(request: NextRequest) {
     }));
 
     await db.insert(chatParticipants).values(participantValues);
+
+    // Fire a "group created" system message so the chat isn't empty on first open
+    if (type === 'group') {
+      const creator = await db
+        .select({ fullName: users.fullName, username: users.username })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      const creatorName = creator[0]?.fullName || creator[0]?.username || 'Someone';
+      // Non-blocking — errors swallowed inside sendSystemMessage
+      sendSystemMessage(newChat.id, `${creatorName} created the group`, userId);
+    }
 
     return NextResponse.json({ chat: newChat }, { status: 201 });
   } catch (error) {

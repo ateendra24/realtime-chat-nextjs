@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { chatParticipants } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { chatParticipants, users } from '@/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
+import { sendSystemMessage } from '@/lib/systemMessage';
 
 // DELETE /api/groups/[groupId]/members/[memberId] - Remove member from group
 export async function DELETE(
@@ -55,6 +56,17 @@ export async function DELETE(
             return NextResponse.json({ error: 'Member not found in group' }, { status: 404 });
         }
 
+        // Fetch display names for the system message
+        const userDetails = await db
+            .select({ id: users.id, fullName: users.fullName, username: users.username })
+            .from(users)
+            .where(inArray(users.id, [userId, memberId]));
+
+        const adminUser = userDetails.find(u => u.id === userId);
+        const removedUser = userDetails.find(u => u.id === memberId);
+        const adminName = adminUser?.fullName || adminUser?.username || 'Admin';
+        const removedName = removedUser?.fullName || removedUser?.username || 'Someone';
+
         // Remove the member from the group
         await db
             .delete(chatParticipants)
@@ -62,6 +74,9 @@ export async function DELETE(
                 eq(chatParticipants.chatId, groupId),
                 eq(chatParticipants.userId, memberId)
             ));
+
+        // Fire system message
+        await sendSystemMessage(groupId, `${adminName} removed ${removedName} from the group`, userId);
 
         return NextResponse.json({
             success: true,

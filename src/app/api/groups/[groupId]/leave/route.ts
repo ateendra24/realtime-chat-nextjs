@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { chatParticipants, chats } from '@/db/schema';
+import { chatParticipants, chats, users } from '@/db/schema';
 import { eq, and, count } from 'drizzle-orm';
+import { sendSystemMessage } from '@/lib/systemMessage';
 
 // POST /api/groups/[groupId]/leave - Leave group
 export async function POST(
@@ -81,6 +82,15 @@ export async function POST(
             }
         }
 
+        // Fetch user's display name before removing them
+        const leavingUser = await db
+            .select({ fullName: users.fullName, username: users.username })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+
+        const displayName = leavingUser[0]?.fullName || leavingUser[0]?.username || 'Someone';
+
         // Remove user from group
         await db
             .delete(chatParticipants)
@@ -90,6 +100,9 @@ export async function POST(
             ));
 
         console.log(`User ${userId} left group ${groupId}`);
+
+        // Fire system message (non-blocking — errors are swallowed internally)
+        await sendSystemMessage(groupId, `${displayName} left the group`, userId);
 
         return NextResponse.json({
             success: true,

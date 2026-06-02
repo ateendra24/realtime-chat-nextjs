@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/db';
-import { chats, chatParticipants } from '@/db/schema';
+import { chats, chatParticipants, users } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { sendSystemMessage } from '@/lib/systemMessage';
 
 // PATCH /api/groups/[groupId] - Update group information
 export async function PATCH(
@@ -50,6 +51,18 @@ export async function PATCH(
         }
 
         const group = updatedGroup[0];
+
+        // Fire a system message if the group name changed
+        if (updates.name) {
+            const adminUser = await db
+                .select({ fullName: users.fullName, username: users.username })
+                .from(users)
+                .where(eq(users.id, userId))
+                .limit(1);
+            const adminName = adminUser[0]?.fullName || adminUser[0]?.username || 'Admin';
+            // Fire non-blocking (errors are swallowed inside sendSystemMessage)
+            sendSystemMessage(groupId, `${adminName} renamed the group to "${updates.name}"`, userId);
+        }
 
         // Return updated group data in the format expected by the frontend
         const responseData = {
