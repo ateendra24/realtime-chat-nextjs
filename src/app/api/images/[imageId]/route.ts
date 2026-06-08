@@ -38,9 +38,27 @@ export async function GET(
             return NextResponse.json({ error: 'Image not found or access denied' }, { status: 404 });
         }
 
-        const { blobUrl } = result[0];
+        const { blobUrl, mimeType, fileName } = result[0];
 
-        return NextResponse.redirect(blobUrl);
+        // Proxy the image instead of redirecting — keeps the blob URL hidden
+        // and ensures only authenticated users can access it
+        const blobResponse = await fetch(blobUrl);
+
+        if (!blobResponse.ok) {
+            return NextResponse.json({ error: 'Failed to fetch image' }, { status: 502 });
+        }
+
+        const imageBuffer = await blobResponse.arrayBuffer();
+
+        return new NextResponse(imageBuffer, {
+            status: 200,
+            headers: {
+                'Content-Type': mimeType || 'image/jpeg',
+                'Content-Disposition': `inline; filename="${fileName}"`,
+                'Cache-Control': 'private, max-age=86400, immutable',
+                'X-Content-Type-Options': 'nosniff',
+            },
+        });
 
     } catch (error) {
         console.error('Image serving error:', error);
