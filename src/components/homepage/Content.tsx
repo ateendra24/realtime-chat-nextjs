@@ -52,14 +52,17 @@ function Content() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md"
+                        className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xl justify-center"
                     >
-                        <Button size="lg" className="h-12 rounded-full px-8 w-full sm:w-auto" asChild>
+                        <Button size="lg" className="h-12 rounded-full px-8 w-full sm:w-auto cursor-pointer" asChild>
                             <Link href="/sign-up">Start Chatting Now</Link>
                         </Button>
-                        <Button size="lg" variant="outline" className="h-12 rounded-full px-8 w-full sm:w-auto" asChild>
-                            <Link href="https://github.com/ateendra24/realtime-chat-nextjs" target="_blank">View on GitHub</Link>
+                        <Button size="lg" variant="secondary" className="h-12 rounded-full px-8 w-full sm:w-auto cursor-pointer" asChild>
+                            <Link href="/demo">Try Interactive Demo</Link>
                         </Button>
+                        {/* <Button size="lg" variant="outline" className="h-12 rounded-full px-8 w-full sm:w-auto cursor-pointer" asChild>
+                            <Link href="https://github.com/ateendra24/realtime-chat-nextjs" target="_blank">View on GitHub</Link>
+                        </Button> */}
                     </motion.div>
                 </div>
 
@@ -217,11 +220,16 @@ function Content() {
                 </div>
 
                 {/* CTA Section */}
-                <div className="text-center mb-20">
+                <div className="text-center mb-20 flex flex-col items-center gap-4">
                     <h2 className="text-4xl md:text-6xl font-bold mb-8">Ready to connect?</h2>
-                    <Button size="lg" className="h-14 px-10 rounded-full text-lg" asChild>
-                        <Link href="/sign-up">Get Started for Free <ArrowRight className="ml-2 w-5 h-5" /></Link>
-                    </Button>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                        <Button size="lg" className="h-14 px-10 rounded-full text-lg cursor-pointer" asChild>
+                            <Link href="/sign-up">Get Started for Free <ArrowRight className="ml-2 w-5 h-5" /></Link>
+                        </Button>
+                        <Button size="lg" variant="outline" className="h-14 px-10 rounded-full text-lg cursor-pointer animate-pulse" asChild>
+                            <Link href="/demo">Explore Interactive Demo</Link>
+                        </Button>
+                    </div>
                 </div>
 
             </div>
