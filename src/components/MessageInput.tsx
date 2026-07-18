@@ -357,7 +357,7 @@ export function MessageInput({
                 <Button
                     onClick={handleSend}
                     disabled={(!input.trim() && !selectedImage) || !selectedChat || uploading}
-                    className='rounded-full w-10 h-10 p-0 hover:scale-105 transition-all disabled:hover:scale-100'
+                    className='rounded-full w-10 h-10 p-0 hover:scale-105 transition-all disabled:hover:scale-100 cursor-pointer'
                 >
                     {uploading ? (
                         <Loader2 className="h-5 w-5 animate-spin" />

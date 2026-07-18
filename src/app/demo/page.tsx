@@ -826,7 +826,7 @@ export default function DemoPage() {
 
                 {/* Send button — exact match */}
                 <Button onClick={handleSend} disabled={!input.trim()}
-                  className="rounded-full w-10 h-10 p-0 hover:scale-105 transition-all disabled:hover:scale-100">
+                  className="rounded-full w-10 h-10 p-0 hover:scale-105 transition-all disabled:hover:scale-100 cursor-pointer">
                   <Send className="h-5 w-5" />
                 </Button>
               </div>

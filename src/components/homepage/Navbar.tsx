@@ -6,6 +6,7 @@ import { Button } from '../ui/button'
 import { Moon, Sun, MessageCircle, Star } from 'lucide-react'
 import Link from 'next/link'
 import Github from '../icons/Github'
+import NumberFlow from '@number-flow/react'
 
 interface NavbarProps {
     githubStars?: number | null
@@ -14,10 +15,14 @@ interface NavbarProps {
 function Navbar({ githubStars }: NavbarProps) {
     const { setTheme, theme } = useTheme()
     const [mounted, setMounted] = useState(false)
+    const [stars, setStars] = useState(0)
 
     useEffect(() => {
         setMounted(true)
-    }, [])
+        if (githubStars) {
+            setStars(githubStars)
+        }
+    }, [githubStars])
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -44,7 +49,9 @@ function Navbar({ githubStars }: NavbarProps) {
                         <Link href={siteConfig.links.github} target='_blank' rel='noopener noreferrer'>
                             <Github className="!h-5 !w-5 md:mr-1.5" />
                             <Star className="hidden md:block h-3.5 w-3.5 fill-yellow-500 text-yellow-500 mr-0.5" />
-                            <span className="hidden md:block text-sm font-medium">{githubStars ?? 'Star'}</span>
+                            <span className="hidden md:block text-sm font-medium">
+                                <NumberFlow value={stars} />
+                            </span>
                         </Link>
                     </Button>
 
