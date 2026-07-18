@@ -126,6 +126,9 @@ export default function ChatPage() {
                             selectedChatId={selectedChat?.id}
                             refreshTrigger={chatListRefresh}
                             onTotalUnreadChange={setTotalUnreadCount}
+                            blockedUsers={blockedUsers}
+                            onBlockUser={blockUser}
+                            onUnblockUser={unblockUser}
                         />
                     </SidebarContent>
 

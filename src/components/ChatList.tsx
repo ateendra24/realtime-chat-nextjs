@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus } from "lucide-react";
+import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus, Ban, ShieldCheck, ChevronDown } from "lucide-react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
@@ -18,7 +18,7 @@ import { useSidebar } from "./ui/sidebar";
 import { siteConfig } from "@/config/siteConfig";
 import NumberFlow from "@number-flow/react";
 
-export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger, onTotalUnreadChange }: ChatListProps & { onTotalUnreadChange?: (count: number) => void }) {
+export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedChatId, refreshTrigger, onTotalUnreadChange, blockedUsers, onBlockUser, onUnblockUser }: ChatListProps & { onTotalUnreadChange?: (count: number) => void }) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'direct' | 'group' | 'unread'>('all');
@@ -444,7 +444,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                     <div
                       key={chat.id}
                       onClick={() => { if (isMobile) toggleSidebar(); onChatSelect?.(chat); }}
-                      className={`flex items-center mb-1 space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
+                      className={`group/chat flex items-center mb-1 space-x-3 p-3 border border-transparent rounded-2xl cursor-pointer hover:bg-muted transition-colors ${selectedChatId === chat.id
                         ? '!bg-border'
                         : chat.unreadCount && chat.unreadCount > 0 && selectedChatId !== chat.id
                           ? 'bg-primary/10 border border-primary/30! hover:bg-primary/20'
@@ -507,6 +507,48 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                               </Badge>
                             )}
                             {/* {getChatIcon(chat)} */}
+                            {/* Chat context menu */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <div
+                                  role="button"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="opacity-0 group-hover/chat:opacity-100 transition-opacity rounded-full p-0.5 hover:bg-accent cursor-pointer"
+                                >
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                className="w-44 rounded-xl"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {chat.type === 'direct' && chat.otherUserId && (
+                                  blockedUsers?.has(chat.otherUserId) ? (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer rounded-lg"
+                                      onClick={() => onUnblockUser?.(chat.otherUserId!)}
+                                    >
+                                      <ShieldCheck className="h-4 w-4 mr-2 text-green-500" />
+                                      Unblock User
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem
+                                      className="cursor-pointer rounded-lg hover:bg-destructive! hover:text-destructive-foreground!"
+                                      onClick={() => onBlockUser?.(chat.otherUserId!)}
+                                    >
+                                      <Ban className="h-4 w-4 mr-2" />
+                                      Block User
+                                    </DropdownMenuItem>
+                                  )
+                                )}
+                                {chat.type === 'group' && (
+                                  <DropdownMenuItem disabled className="cursor-default rounded-lg text-muted-foreground text-xs">
+                                    More options coming soon
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>

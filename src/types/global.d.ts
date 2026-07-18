@@ -273,6 +273,9 @@ export interface ChatListProps {
   onCreateGroup?: () => void;
   onSearchUsers?: () => void;
   refreshTrigger?: number;
+  blockedUsers?: Set<string>;
+  onBlockUser?: (userId: string) => void;
+  onUnblockUser?: (userId: string) => void;
 }
 
 /**
