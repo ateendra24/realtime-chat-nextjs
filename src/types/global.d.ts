@@ -276,6 +276,7 @@ export interface ChatListProps {
   blockedUsers?: Set<string>;
   onBlockUser?: (userId: string) => void;
   onUnblockUser?: (userId: string) => void;
+  onCloseChat?: () => void;
 }
 
 /**

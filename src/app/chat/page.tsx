@@ -129,6 +129,7 @@ export default function ChatPage() {
                             blockedUsers={blockedUsers}
                             onBlockUser={blockUser}
                             onUnblockUser={unblockUser}
+                            onCloseChat={() => setSelectedChat(null)}
                         />
                     </SidebarContent>
 
