@@ -45,6 +45,7 @@ function UserFooter() {
     const [errors, setErrors] = useState<{ username?: string; general?: string; avatar?: string }>({});
     const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Update state when user data loads
     React.useEffect(() => {
@@ -171,6 +172,36 @@ function UserFooter() {
             setUploadingAvatar(false);
             // Reset file input
             event.target.value = '';
+        }
+    };
+
+    const handleAvatarRemove = async () => {
+        setUploadingAvatar(true);
+        setErrors(prev => ({ ...prev, avatar: undefined }));
+        try {
+            const response = await fetch('/api/users/avatar', {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                setErrors(prev => ({ ...prev, avatar: data.error || "Failed to remove avatar" }));
+                return;
+            }
+
+            // Success
+            toast.success("Avatar removed successfully!");
+            setPreviewUrl(null);
+
+            // Reload user data to reflect changes
+            await user?.reload();
+
+        } catch (error) {
+            console.error('Error removing avatar:', error);
+            setErrors(prev => ({ ...prev, avatar: "Failed to remove avatar. Please try again." }));
+        } finally {
+            setUploadingAvatar(false);
         }
     };
 
@@ -304,7 +335,7 @@ function UserFooter() {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div className="flex flex-col items-center space-y-4">
+                        <div className="flex flex-col items-center">
                             <div className="relative group">
                                 <Avatar className="w-20 h-20">
                                     <AvatarImage
@@ -327,6 +358,7 @@ function UserFooter() {
 
                                 {/* Hidden file input */}
                                 <input
+                                    ref={fileInputRef}
                                     type="file"
                                     accept="image/jpeg,image/jpg,image/png,image/webp"
                                     onChange={handleAvatarUpload}
@@ -334,11 +366,24 @@ function UserFooter() {
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                                 />
                             </div>
+                            {user?.hasImage && (
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={handleAvatarRemove}
+                                    disabled={uploadingAvatar}
+                                    className="relative overflow-hidden cursor-pointer flex items-center gap-1"
+                                >
+                                    <XCircle className="h-4 w-4" />
+                                    Remove Avatar
+                                </Button>
+                            )}
 
-                            <div className="text-center">
+                            <div className="text-center mt-2">
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    onClick={() => fileInputRef.current?.click()}
                                     disabled={uploadingAvatar}
                                     className="relative overflow-hidden cursor-pointer"
                                 >
@@ -353,13 +398,6 @@ function UserFooter() {
                                             Change Avatar
                                         </span>
                                     )}
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                                        onChange={handleAvatarUpload}
-                                        disabled={uploadingAvatar}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                                    />
                                 </Button>
                                 <p className="text-xs text-muted-foreground mt-2">
                                     JPG, PNG, or WebP (Max 5MB)

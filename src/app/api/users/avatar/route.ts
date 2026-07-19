@@ -68,3 +68,46 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
+
+export async function DELETE() {
+    try {
+        const { userId } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        try {
+            const client = await clerkClient();
+            
+            // Delete user profile image in Clerk
+            await client.users.deleteUserProfileImage(userId);
+
+            // Get the updated user details to retrieve the fallback/default imageUrl
+            const updatedUser = await client.users.getUser(userId);
+
+            // Update avatarUrl in our database to Clerk's default placeholder
+            await db
+                .update(users)
+                .set({
+                    avatarUrl: updatedUser.imageUrl,
+                    updatedAt: new Date(),
+                })
+                .where(eq(users.id, userId));
+
+            return NextResponse.json({
+                success: true,
+                avatarUrl: updatedUser.imageUrl,
+                message: "Avatar removed successfully"
+            });
+
+        } catch (clerkError) {
+            console.error("Error deleting avatar in Clerk:", clerkError);
+            return NextResponse.json({
+                error: "Failed to remove avatar. Please try again."
+            }, { status: 500 });
+        }
+    } catch (error) {
+        console.error("Error deleting avatar:", error);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+}
