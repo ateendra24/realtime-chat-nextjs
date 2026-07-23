@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import moment from 'moment';
 import type { MessagesProps } from '@/types/global';
 import { ProgressiveBlur } from './ui/progressive-blur';
 import { AnimatePresence, motion } from 'motion/react';
+
+const MESSAGE_CHAR_LIMIT = 300;
 
 // Helper function to format date separator
 const formatDateSeparator = (date: moment.Moment) => {
@@ -144,6 +146,19 @@ export function Messages({
     typingUsers = new Set(),
 }: MessagesProps) {
     const messageRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+    const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+
+    const toggleExpanded = (id: string) => {
+        setExpandedMessages(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
 
     function isEmoji(char: string) {
@@ -326,10 +341,32 @@ export function Messages({
                                                     ) : (
                                                         <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
                                                             <div className="leading-relaxed text-inherit text-left clearfix whitespace-pre-wrap break-words">
-                                                                {renderMessageContent(message.content)}
-                                                                {message.isEdited && (
-                                                                    <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
-                                                                )}
+                                                                {(() => {
+                                                                    const isLong = message.content.length > MESSAGE_CHAR_LIMIT;
+                                                                    const isExpanded = expandedMessages.has(message.id);
+                                                                    const displayContent = isLong && !isExpanded
+                                                                        ? message.content.slice(0, MESSAGE_CHAR_LIMIT).replace(/\s+\S*$/, '') + '…'
+                                                                        : message.content;
+                                                                    return (
+                                                                        <>
+                                                                            {renderMessageContent(displayContent)}
+                                                                            {message.isEdited && (
+                                                                                <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
+                                                                            )}
+                                                                            <br />
+                                                                            {isLong && (
+                                                                                <span
+                                                                                    role="button"
+                                                                                    onClick={(e) => { e.stopPropagation(); toggleExpanded(message.id); }}
+                                                                                    className="ml-1 text-[11px] font-semibold hover:opacity-70 cursor-pointer underline underline-offset-2 transition-opacity"
+                                                                                >
+                                                                                    {isExpanded ? 'Read less' : 'Read more'}
+                                                                                </span>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                })()
+                                                                }
                                                                 <span className={`float-right text-[10px] opacity-70 ml-3 mt-1.5 ${isEmoji(message.content) ? 'text-muted-foreground' : 'text-inherit'}`}>
                                                                     {formattedTime}
                                                                 </span>
