@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus, Ban, ShieldCheck, ChevronDown } from "lucide-react";
+import { MessageSquare, Users, Search, X, UserPlus, Sun, Moon, Plus, Ban, ShieldCheck, ChevronDown, Pin, PinOff } from "lucide-react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { Input } from "./ui/input";
 import { Skeleton } from "./ui/skeleton";
@@ -11,7 +11,7 @@ import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
 import type { Chat, ChatListProps, Message } from '@/types/global';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "./ui/sidebar";
@@ -27,6 +27,31 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   const { setTheme, theme } = useTheme();
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
+
+  // ----- Pinned chats (local, max 2) -----
+  const PIN_STORAGE_KEY = 'chatflow_pinned_chats';
+  const [pinnedChatIds, setPinnedChatIds] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(PIN_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const togglePin = useCallback((chatId: string) => {
+    setPinnedChatIds(prev => {
+      let next: string[];
+      if (prev.includes(chatId)) {
+        next = prev.filter(id => id !== chatId);
+      } else {
+        if (prev.length >= 2) return prev; // max 2 pins
+        next = [...prev, chatId];
+      }
+      try { localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify(next)); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
 
   // Debounce search query to reduce filtering operations
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -276,14 +301,23 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       return true;
     });
 
-    // Sort by last message time
+    // Sort: pinned first (preserve pin order), then by last message time
     return filtered.sort((a, b) => {
+      const aPinIdx = pinnedChatIds.indexOf(a.id);
+      const bPinIdx = pinnedChatIds.indexOf(b.id);
+      const aPinned = aPinIdx !== -1;
+      const bPinned = bPinIdx !== -1;
+
+      if (aPinned && bPinned) return aPinIdx - bPinIdx; // preserve pin order
+      if (aPinned) return -1;
+      if (bPinned) return 1;
+
       const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
       const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
       return bTime - aTime;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chats, filter, debouncedSearchQuery]);
+  }, [chats, filter, debouncedSearchQuery, pinnedChatIds]);
 
   return (
     <div className="flex flex-col h-full">
@@ -506,6 +540,10 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                                 Admin
                               </Badge>
                             )}
+                            {/* Pin badge */}
+                            {pinnedChatIds.includes(chat.id) && (
+                              <Pin className="h-3 w-3 text-primary shrink-0" />
+                            )}
                             {/* {getChatIcon(chat)} */}
                             {/* Chat context menu */}
                             <DropdownMenu>
@@ -523,6 +561,24 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                                 className="w-44 rounded-2xl"
                                 onClick={(e) => e.stopPropagation()}
                               >
+                                {/* Pin / Unpin */}
+                                {pinnedChatIds.includes(chat.id) ? (
+                                  <DropdownMenuItem
+                                    className="cursor-pointer rounded-xl"
+                                    onClick={() => togglePin(chat.id)}
+                                  >
+                                    <PinOff className="h-4 w-4 mr-2" />
+                                    Unpin Chat
+                                  </DropdownMenuItem>
+                                ) : pinnedChatIds.length < 2 ? (
+                                  <DropdownMenuItem
+                                    className="cursor-pointer rounded-xl"
+                                    onClick={() => togglePin(chat.id)}
+                                  >
+                                    <Pin className="h-4 w-4 mr-2" />
+                                    Pin Chat
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {selectedChatId === chat.id && (
                                   <DropdownMenuItem
                                     className="cursor-pointer rounded-xl"
@@ -532,6 +588,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                                     Close Chat
                                   </DropdownMenuItem>
                                 )}
+                                <DropdownMenuSeparator />
                                 {chat.type === 'direct' && chat.otherUserId && (
                                   blockedUsers?.has(chat.otherUserId) ? (
                                     <DropdownMenuItem
