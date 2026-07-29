@@ -353,12 +353,11 @@ export function Messages({
                                                                             {message.isEdited && (
                                                                                 <span className="text-xs opacity-70 ml-2 italic">(edited)</span>
                                                                             )}
-                                                                            <br />
                                                                             {isLong && (
                                                                                 <span
                                                                                     role="button"
                                                                                     onClick={(e) => { e.stopPropagation(); toggleExpanded(message.id); }}
-                                                                                    className="ml-1 text-[11px] font-semibold hover:opacity-70 cursor-pointer underline underline-offset-2 transition-opacity"
+                                                                                    className="ml-1.5 text-[11px] font-semibold opacity-70 hover:opacity-100 cursor-pointer underline underline-offset-2 transition-opacity inline-block select-none"
                                                                                 >
                                                                                     {isExpanded ? 'Read less' : 'Read more'}
                                                                                 </span>
