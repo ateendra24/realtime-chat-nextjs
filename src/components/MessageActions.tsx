@@ -9,7 +9,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash, Copy } from "lucide-react";
+import { Heart, Laugh, ThumbsUp, ThumbsDown, MoreHorizontal, Edit, Trash, Copy, Reply } from "lucide-react";
 import { MessageType } from "@/types/global";
 
 interface MessageActionsProps {
@@ -20,6 +20,7 @@ interface MessageActionsProps {
     onReaction: (messageId: string, emoji: string) => void;
     onEdit?: (messageId: string) => void;
     onDelete?: (messageId: string) => void;
+    onReply?: () => void;
     messageTimestamp: string;
     messageCreatedAt?: Date | string;
 }
@@ -39,6 +40,7 @@ export function MessageActions({
     onReaction,
     onEdit,
     onDelete,
+    onReply,
     messageTimestamp,
     messageCreatedAt
 }: MessageActionsProps) {
@@ -71,6 +73,13 @@ export function MessageActions({
         setIsOpen(false);
     };
 
+    const handleReply = () => {
+        if (onReply) {
+            onReply();
+        }
+        setIsOpen(false);
+    };
+
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
@@ -98,6 +107,12 @@ export function MessageActions({
                         </Button>
                     ))}
                 </div>
+
+                {onReply && (
+                    <DropdownMenuItem className="cursor-pointer rounded-lg" onClick={handleReply}>
+                        <Reply className="mr-1 h-4 w-4" /> Reply
+                    </DropdownMenuItem>
+                )}
 
                 {type === 'text' && (
                     <DropdownMenuItem className="cursor-pointer rounded-lg" onClick={() => navigator.clipboard.writeText(content)} >

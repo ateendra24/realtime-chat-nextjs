@@ -138,6 +138,7 @@ export function Messages({
     onReaction,
     onEditMessage,
     onDeleteMessage,
+    onReplyMessage,
     onLoadMoreMessages,
     hasMoreMessages = false,
     loadingMoreMessages = false,
@@ -340,6 +341,29 @@ export function Messages({
                                                         </div>
                                                     ) : (
                                                         <div className={`px-2.5 py-1.5 rounded-xl w-fit relative shadow-sm hover:shadow-md transition-all text-sm ${isCurrentUser ? 'bg-primary/90 ml-auto text-primary-foreground' : 'bg-muted hover:bg-muted/80'} ${message.isOptimistic ? 'opacity-70' : ''}  ${isEmoji(message.content) && "bg-transparent text-4xl! p-0! hover:bg-transparent! shadow-none!"}`}>
+                                                            {message.replyTo && (
+                                                                <div
+                                                                    role="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        const targetEl = messageRefs.current[message.replyTo!.id];
+                                                                        if (targetEl) {
+                                                                            targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                                            targetEl.classList.add('bg-primary/20', 'transition-colors', 'duration-500');
+                                                                            setTimeout(() => {
+                                                                                targetEl.classList.remove('bg-primary/20');
+                                                                            }, 1500);
+                                                                        }
+                                                                    }}
+                                                                    className={`mb-2 p-2 rounded-lg text-xs cursor-pointer ${isCurrentUser
+                                                                            ? 'bg-primary-foreground/15 border-primary-foreground/80 text-primary-foreground'
+                                                                            : 'bg-background/60 border-primary text-foreground'
+                                                                        } transition-opacity hover:opacity-90`}
+                                                                >
+                                                                    <p className="font-semibold text-[11px] truncate opacity-95">{message.replyTo.user}</p>
+                                                                    <p className="line-clamp-1 opacity-80 mt-0.5">{message.replyTo.content}</p>
+                                                                </div>
+                                                            )}
                                                             <div className="leading-relaxed text-inherit text-left clearfix whitespace-pre-wrap break-words">
                                                                 {(() => {
                                                                     const isLong = message.content.length > MESSAGE_CHAR_LIMIT;
@@ -391,6 +415,7 @@ export function Messages({
                                                                 onReaction={onReaction || (() => { })}
                                                                 onEdit={onEditMessage}
                                                                 onDelete={onDeleteMessage}
+                                                                onReply={onReplyMessage ? () => onReplyMessage(message) : undefined}
                                                                 messageTimestamp={formattedTime}
                                                                 messageCreatedAt={message.createdAt}
                                                             />

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Send, Smile, Image as ImageIcon, X, Loader2 } from "lucide-react";
+import { Send, Smile, Image as ImageIcon, X, Loader2, Reply } from "lucide-react";
 import data from '@emoji-mart/data'
 import Picker from '@emoji-mart/react'
 import { useTheme } from 'next-themes';
@@ -30,7 +30,9 @@ export function MessageInput({
     onTyping,
     editingMessage,
     onSaveEdit,
-    onCancelEdit
+    onCancelEdit,
+    replyingToMessage,
+    onCancelReply
 }: LocalMessageInputProps) {
     // Hooks must be called before any conditional returns
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -248,6 +250,27 @@ export function MessageInput({
                         className="h-8"
                     >
                         Cancel
+                    </Button>
+                </div>
+            )}
+
+            {/* Reply Mode Banner */}
+            {replyingToMessage && !editingMessage && (
+                <div className="flex items-center justify-between p-2.5 bg-muted/70 backdrop-blur-md mx-3 rounded-xl">
+                    <div className="flex items-center space-x-2 overflow-hidden min-w-0 pr-2">
+                        <Reply className="h-4 w-4 text-primary shrink-0" />
+                        <div className="flex flex-col min-w-0">
+                            <p className="text-xs font-semibold text-primary truncate">Replying to {replyingToMessage.user}</p>
+                            <p className="text-xs text-muted-foreground truncate">{replyingToMessage.content}</p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCancelReply}
+                        className="h-7 w-7 p-0 rounded-full shrink-0 hover:bg-muted"
+                    >
+                        <X className="h-4 w-4" />
                     </Button>
                 </div>
             )}

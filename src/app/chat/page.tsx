@@ -57,6 +57,8 @@ export default function ChatPage() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        handleReplyMessage,
+        cancelReply,
         handleSaveEdit,
         handleCancelEdit,
         addImageMessage,
@@ -68,6 +70,7 @@ export default function ChatPage() {
         handleNextSearchResult,
         handlePrevSearchResult,
         editingMessage,
+        replyingToMessage,
         blockUser,
         unblockUser,
         blockedUsers,
@@ -165,6 +168,7 @@ export default function ChatPage() {
                         onReaction={handleReaction}
                         onEditMessage={handleEditMessage}
                         onDeleteMessage={handleDeleteMessage}
+                        onReplyMessage={handleReplyMessage}
                         onLoadMoreMessages={loadMoreMessages}
                         hasMoreMessages={hasMoreMessages}
                         loadingMoreMessages={loadingMoreMessages}
@@ -191,6 +195,8 @@ export default function ChatPage() {
                             onSaveEdit={handleSaveEdit}
                             onCancelEdit={handleCancelEdit}
                             onTyping={handleTyping}
+                            replyingToMessage={replyingToMessage}
+                            onCancelReply={cancelReply}
                         />
                     )}
                 </SidebarInset>
