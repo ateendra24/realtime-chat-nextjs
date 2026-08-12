@@ -28,6 +28,8 @@ export function useChatLogic() {
 
     // Typing state
     const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [replyingToMessage, setReplyingToMessage] = useState<Message | null>(null);
     const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     // Message cache: Map<chatId, {messages, cursor, hasMore, timestamp}>
@@ -42,9 +44,6 @@ export function useChatLogic() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Message[]>([]);
     const [currentSearchResultIndex, setCurrentSearchResultIndex] = useState(0);
-
-    // Edit message state
-    const [editingMessage, setEditingMessage] = useState<Message | null>(null);
 
     // --- Web Notifications Support ---
     useEffect(() => {
@@ -563,6 +562,11 @@ export function useChatLogic() {
 
             const messageContent = input.trim();
             const tempId = `temp_${Date.now()}_${Math.random()}`;
+            const currentReplyTo = replyingToMessage;
+
+            // Clear input and reply state immediately
+            setInput("");
+            setReplyingToMessage(null);
 
             // Create optimistic message to show immediately
             const optimisticMessage: Message = {
@@ -574,10 +578,15 @@ export function useChatLogic() {
                 chatId: chatId,
                 avatarUrl: user.imageUrl,
                 isOptimistic: true, // Flag to identify optimistic messages
+                replyToId: currentReplyTo?.id,
+                replyTo: currentReplyTo ? {
+                    id: currentReplyTo.id,
+                    user: currentReplyTo.user,
+                    content: currentReplyTo.content,
+                    isDeleted: currentReplyTo.isDeleted,
+                } : undefined,
             };
 
-            // Clear input and show message immediately
-            setInput("");
             setMessages((prev) => {
                 const updatedMessages = [...prev, optimisticMessage];
 
@@ -605,6 +614,7 @@ export function useChatLogic() {
                     },
                     body: JSON.stringify({
                         content: messageContent,
+                        replyToId: currentReplyTo?.id,
                     }),
                 });
 
@@ -672,6 +682,7 @@ export function useChatLogic() {
     const handleChatSelect = async (chat: Chat) => {
         // Early UI update for instant feedback
         setShowCreateGroup(false);
+        setReplyingToMessage(null);
         setSelectedChat(chat);
 
         // Check if we have cached messages for this chat
@@ -1218,6 +1229,14 @@ export function useChatLogic() {
         }
     };
 
+    const handleReplyMessage = (message: Message) => {
+        setReplyingToMessage(message);
+    };
+
+    const cancelReply = () => {
+        setReplyingToMessage(null);
+    };
+
     const addImageMessage = (imageMessage: Message) => {
         // Add the image message to local state for optimistic update
         setMessages((prev) => {
@@ -1277,6 +1296,7 @@ export function useChatLogic() {
         isInitialLoad,
         typingUsers,
         editingMessage,
+        replyingToMessage,
 
         // Functions
         sendMessage,
@@ -1292,6 +1312,8 @@ export function useChatLogic() {
         handleReaction,
         handleEditMessage,
         handleDeleteMessage,
+        handleReplyMessage,
+        cancelReply,
         handleSaveEdit,
         handleCancelEdit,
         addImageMessage,

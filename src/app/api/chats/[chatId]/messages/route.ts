@@ -45,6 +45,7 @@ export async function GET(
                 editedAt: messages.editedAt,
                 userId: messages.userId,
                 isDeleted: messages.isDeleted,
+                replyToId: messages.replyToId,
                 attachmentId: messageAttachments.id,
                 fileName: messageAttachments.fileName,
                 fileSize: messageAttachments.fileSize,
@@ -63,12 +64,13 @@ export async function GET(
         const hasMoreMessages = chatMessages.length > limit;
         const messagesToReturn = hasMoreMessages ? chatMessages.slice(0, limit) : chatMessages;
 
-        // Get unique user IDs for batch fetch
+        // Get unique user IDs and replyTo IDs for batch fetch
         const uniqueUserIds = [...new Set(messagesToReturn.map(msg => msg.userId))];
         const messageIds = messagesToReturn.map(msg => msg.id);
+        const replyToIds = [...new Set(messagesToReturn.map(msg => msg.replyToId).filter((id): id is string => Boolean(id)))];
 
-        // Fetch user data and reactions in parallel (optimized with composite indexes)
-        const [userData, reactions, userReactions] = await Promise.all([
+        // Fetch user data, reactions, and reply parent messages in parallel
+        const [userData, reactions, userReactions, replyToData] = await Promise.all([
             // Fetch users in batch (uses users_id index)
             uniqueUserIds.length > 0 ? db
                 .select({
@@ -105,7 +107,22 @@ export async function GET(
                         eq(messageReactions.userId, userId)
                     )
                 )
-                : Promise.resolve([])
+                : Promise.resolve([]),
+
+            // Fetch parent messages for replies in batch
+            replyToIds.length > 0 ? db
+                .select({
+                    id: messages.id,
+                    content: messages.content,
+                    isDeleted: messages.isDeleted,
+                    userId: messages.userId,
+                    fullName: users.fullName,
+                    username: users.username,
+                })
+                .from(messages)
+                .leftJoin(users, eq(users.id, messages.userId))
+                .where(inArray(messages.id, replyToIds))
+                : Promise.resolve([]),
         ]);
 
         // Create user lookup map for O(1) access
@@ -113,6 +130,17 @@ export async function GET(
             acc[user.id] = user;
             return acc;
         }, {} as Record<string, typeof userData[0]>);
+
+        // Create replyTo lookup map
+        const replyToMap = replyToData.reduce((acc, parentMsg) => {
+            acc[parentMsg.id] = {
+                id: parentMsg.id,
+                user: parentMsg.fullName || parentMsg.username || 'Unknown User',
+                content: parentMsg.isDeleted ? 'This message was deleted' : parentMsg.content,
+                isDeleted: parentMsg.isDeleted || false,
+            };
+            return acc;
+        }, {} as Record<string, { id: string; user: string; content: string; isDeleted?: boolean }>);
 
         // Group reactions by message ID and emoji
         const reactionsByMessage = reactions.reduce((acc, reaction) => {
@@ -179,6 +207,8 @@ export async function GET(
                 chatId: chatId,
                 attachment,
                 reactions: reactionsArray,
+                replyToId: msg.replyToId || undefined,
+                replyTo: msg.replyToId ? replyToMap[msg.replyToId] : undefined,
             };
         }).reverse(); // Reverse to show oldest first
 
@@ -214,7 +244,7 @@ export async function POST(
         }
 
         const { chatId } = await params;
-        const { content } = await req.json();
+        const { content, replyToId } = await req.json();
 
         if (!content || !content.trim()) {
             return NextResponse.json({ error: "Message content is required" }, { status: 400 });
@@ -281,9 +311,36 @@ export async function POST(
                 chatId,
                 userId,
                 content: content.trim(),
+                replyToId: replyToId || null,
                 createdAt: new Date(),
             })
             .returning();
+
+        // If replyToId exists, fetch parent message details for response & real-time broadcast
+        let replyToObj: { id: string; user: string; content: string; isDeleted?: boolean } | undefined = undefined;
+        if (replyToId) {
+            const parentMsg = await db
+                .select({
+                    id: messages.id,
+                    content: messages.content,
+                    isDeleted: messages.isDeleted,
+                    fullName: users.fullName,
+                    username: users.username,
+                })
+                .from(messages)
+                .leftJoin(users, eq(users.id, messages.userId))
+                .where(eq(messages.id, replyToId))
+                .limit(1);
+
+            if (parentMsg.length > 0) {
+                replyToObj = {
+                    id: parentMsg[0].id,
+                    user: parentMsg[0].fullName || parentMsg[0].username || 'Unknown User',
+                    content: parentMsg[0].isDeleted ? 'This message was deleted' : parentMsg[0].content,
+                    isDeleted: parentMsg[0].isDeleted || false,
+                };
+            }
+        }
 
         // Update chat metadata with cached last message data
         await db.update(chats)
@@ -310,6 +367,8 @@ export async function POST(
             isDeleted: false,
             chatId: newMessage.chatId,
             reactions: [],
+            replyToId: newMessage.replyToId || undefined,
+            replyTo: replyToObj,
         };
 
         // Emit real-time events
@@ -325,6 +384,8 @@ export async function POST(
             isDeleted: false,
             chatId: newMessage.chatId,
             reactions: [],
+            replyToId: newMessage.replyToId || undefined,
+            replyTo: replyToObj,
         };
 
         // Broadcast message using Ably - Fire and forget for speed (non-blocking)

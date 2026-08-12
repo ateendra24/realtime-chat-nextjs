@@ -47,6 +47,13 @@ export interface Message {
   isOptimistic?: boolean; // For optimistic UI updates
   attachment?: MessageAttachment;
   reactions?: MessageReaction[];
+  replyToId?: string;
+  replyTo?: {
+    id: string;
+    user: string;
+    content: string;
+    isDeleted?: boolean;
+  };
 }
 
 /**
@@ -221,6 +228,8 @@ export interface MessageInputProps {
   selectedChat: Chat | null;
   onImageSent?: (message: Message) => void;
   onTyping?: (isTyping: boolean) => void;
+  replyingToMessage?: Message | null;
+  onCancelReply?: () => void;
 }
 
 /**
@@ -236,6 +245,7 @@ export interface MessagesProps {
   onReaction?: (messageId: string, emoji: string) => void;
   onEditMessage?: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
+  onReplyMessage?: (message: Message) => void;
   onLoadMoreMessages?: () => void;
   hasMoreMessages?: boolean;
   loadingMoreMessages?: boolean;
