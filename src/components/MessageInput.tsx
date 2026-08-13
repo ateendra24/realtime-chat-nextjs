@@ -59,6 +59,16 @@ export function MessageInput({
         }
     }, [selectedChat]);
 
+    // Auto-focus input when replying to a message
+    useEffect(() => {
+        if (replyingToMessage && inputRef.current) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [replyingToMessage]);
+
     // Handle Chat Switching (Load Drafts)
     useEffect(() => {
         if (!selectedChat) return;
