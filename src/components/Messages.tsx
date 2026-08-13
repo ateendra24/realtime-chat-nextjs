@@ -298,12 +298,12 @@ export function Messages({
                                             className={`group flex items-start space-x-2 ${isSameUserAsPrev ? 'mb-1' : 'mb-2'} ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''} ${isSearchResult && 'bg-primary/10'}`}
                                             data-message-id={message.id}
                                         >
-                                            {shouldShowAvatar ? (
+                                            {shouldShowAvatar && !isCurrentUser ? (
                                                 <Avatar className="w-8 h-8">
                                                     <AvatarImage src={message.avatarUrl} alt={message.user || 'User'} />
                                                     <AvatarFallback>{(message.user || 'U').charAt(0).toUpperCase()}</AvatarFallback>
                                                 </Avatar>
-                                            ) : isGroupChat ? (
+                                            ) : isGroupChat && !isCurrentUser ? (
                                                 <div className="w-8 h-8" />
                                             ) : null}
 
@@ -356,8 +356,8 @@ export function Messages({
                                                                         }
                                                                     }}
                                                                     className={`mb-2 p-2 rounded-lg text-xs cursor-pointer ${isCurrentUser
-                                                                            ? 'bg-primary-foreground/15 border-primary-foreground/80 text-primary-foreground'
-                                                                            : 'bg-background/60 border-primary text-foreground'
+                                                                        ? 'bg-primary-foreground/15 border-primary-foreground/80 text-primary-foreground'
+                                                                        : 'bg-background/60 border-primary text-foreground'
                                                                         } transition-opacity hover:opacity-90`}
                                                                 >
                                                                     <p className="font-semibold text-[11px] truncate opacity-95">{message.replyTo.user}</p>
