@@ -297,7 +297,7 @@ export function MessageInput({
                         <Button
                             variant="destructive"
                             size="sm"
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0"
+                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 cursor-pointer"
                             onClick={handleRemoveImage}
                             disabled={uploading}
                         >
