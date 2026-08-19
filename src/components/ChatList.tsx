@@ -10,7 +10,8 @@ import { Skeleton } from "./ui/skeleton";
 import moment from 'moment';
 import { useTheme } from "next-themes";
 import { AnimatedListItem } from "./magicui/animated-list";
-import type { Chat, ChatListProps, Message } from '@/types/global';
+import type { Chat, ChatListProps, Message, TypingEvent } from '@/types/global';
+import { useUser } from "@clerk/nextjs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { ScrollArea } from "./ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +28,11 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
   const { setTheme, theme } = useTheme();
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebar();
+  const { user } = useUser();
+
+  // ----- Typing indicator state per chat: chatId -> Map<userId, userName> -----
+  const [chatTypingUsers, setChatTypingUsers] = useState<Record<string, Map<string, string>>>({});
+  const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // ----- Pinned chats (local, max 2) -----
   const PIN_STORAGE_KEY = 'chatflow_pinned_chats';
@@ -177,14 +183,77 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
       throttledRefresh();
     };
 
-    realtimeClient.onMessage(handleNewMessage);
-    realtimeClient.onChatListUpdate(handleChatListUpdate);
-    realtimeClient.onGlobalChatListUpdate(handleGlobalChatListUpdate);
+    const handleTyping = (data: TypingEvent) => {
+      if (!data?.chatId || (user && data.userId === user.id)) return;
+
+      setChatTypingUsers(prev => {
+        const currentMap = new Map(prev[data.chatId] || []);
+        const key = `${data.chatId}-${data.userId}`;
+
+        if (data.isTyping) {
+          const userName = data.userName || 'Someone';
+          currentMap.set(data.userId, userName);
+
+          // Clear previous timeout
+          if (typingTimeoutsRef.current.has(key)) {
+            clearTimeout(typingTimeoutsRef.current.get(key)!);
+          }
+
+          // Auto-clear typing after 3 seconds
+          const timeout = setTimeout(() => {
+            setChatTypingUsers(curr => {
+              const updatedMap = new Map(curr[data.chatId] || []);
+              updatedMap.delete(data.userId);
+              if (updatedMap.size === 0) {
+                const next = { ...curr };
+                delete next[data.chatId];
+                return next;
+              }
+              return { ...curr, [data.chatId]: updatedMap };
+            });
+            typingTimeoutsRef.current.delete(key);
+          }, 3000);
+
+          typingTimeoutsRef.current.set(key, timeout);
+        } else {
+          currentMap.delete(data.userId);
+          if (typingTimeoutsRef.current.has(key)) {
+            clearTimeout(typingTimeoutsRef.current.get(key)!);
+            typingTimeoutsRef.current.delete(key);
+          }
+        }
+
+        if (currentMap.size === 0) {
+          const next = { ...prev };
+          delete next[data.chatId];
+          return next;
+        }
+
+        return { ...prev, [data.chatId]: currentMap };
+      });
+    };
+
+    const unsubMessage = realtimeClient.onMessage(handleNewMessage);
+    const unsubChatList = realtimeClient.onChatListUpdate(handleChatListUpdate);
+    const unsubGlobal = realtimeClient.onGlobalChatListUpdate(handleGlobalChatListUpdate);
+    const unsubTyping = realtimeClient.onTyping(handleTyping);
 
     return () => {
-      realtimeClient.cleanup();
+      unsubMessage?.();
+      unsubChatList?.();
+      unsubGlobal?.();
+      unsubTyping?.();
+      typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      typingTimeoutsRef.current.clear();
     };
-  }, [realtimeClient, throttledRefresh, selectedChatId]);
+  }, [realtimeClient, throttledRefresh, selectedChatId, user]);
+
+  // Ensure all chats are joined in real-time client to receive typing & message events
+  useEffect(() => {
+    if (realtimeClient && chats.length > 0) {
+      chats.forEach(c => realtimeClient.joinChat(c.id));
+    }
+  }, [realtimeClient, chats]);
 
   const fetchChats = useCallback(async (showLoadingState = true) => {
     try {
@@ -218,6 +287,11 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
         }
         return prevChats;
       });
+
+      // Join chat channels for real-time events
+      if (realtimeClient && data.chats) {
+        data.chats.forEach((c: Chat) => realtimeClient.joinChat(c.id));
+      }
     } catch (error) {
       console.error("Error fetching chats:", error);
     } finally {
@@ -506,9 +580,34 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                         </div>
 
                         <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-muted-foreground line-clamp-1 break-all flex-1 min-w-0 mr-0">
-                            {debouncedSearchQuery ? highlightText(getLastMessagePreview(chat), debouncedSearchQuery) : getLastMessagePreview(chat)}
-                          </p>
+                          {chatTypingUsers[chat.id] && chatTypingUsers[chat.id].size > 0 ? (
+                            <div className="flex items-center text-xs text-primary-foreground font-medium flex-1 min-w-0 mr-1 animate-in fade-in duration-200">
+                              <span className=" mr-1.5 font-bold min-w-0 line-clamp-1 break-all">
+                                {chat.type === 'group' ? (
+                                  (() => {
+                                    const names = Array.from(chatTypingUsers[chat.id].values());
+                                    if (names.length === 1) {
+                                      return `${names[0]} is typing`;
+                                    } else if (names.length === 2) {
+                                      return `${names[0]} and ${names[1]} are typing`;
+                                    } else if (names.length > 2) {
+                                      return `${names[0]} and ${names.length - 1} others are typing`;
+                                    }
+                                    return 'typing';
+                                  })()
+                                ) : 'typing'}
+                              </span>
+                              <span className="flex items-center gap-0.5 h-3 mt-1 shrink-0">
+                                <span className="w-1 h-1 bg-primary-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                <span className="w-1 h-1 bg-primary-foreground rounded-full animate-bounce"></span>
+                                <span className="w-1 h-1 bg-primary-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground line-clamp-1 break-all flex-1 min-w-0 mr-0">
+                              {debouncedSearchQuery ? highlightText(getLastMessagePreview(chat), debouncedSearchQuery) : getLastMessagePreview(chat)}
+                            </p>
+                          )}
                           <div className="flex items-center space-x-1">
                             {/* Unread message count - hide for currently selected chat to prevent flicker */}
                             {typeof chat.unreadCount === 'number' &&
@@ -542,7 +641,7 @@ export function ChatList({ onChatSelect, onCreateGroup, onSearchUsers, selectedC
                             )}
                             {/* Pin badge */}
                             {pinnedChatIds.includes(chat.id) && (
-                              <Pin className="h-3 w-3 text-primary shrink-0" />
+                              <Pin className="h-3 w-3 shrink-0" />
                             )}
                             {/* {getChatIcon(chat)} */}
                             {/* Chat context menu */}

@@ -167,7 +167,7 @@ export function useChatLogic() {
     useEffect(() => {
         if (!realtimeClient) return;
 
-        realtimeClient.onMessage((msg: Message) => {
+        const unsubMessage = realtimeClient.onMessage((msg: Message) => {
             const currentChat = selectedChatRef.current;
 
             // Handle message deletion (should update for everyone, including the author)
@@ -276,26 +276,37 @@ export function useChatLogic() {
 
                     // Update cache with new message
                     const cached = messagesCacheRef.current.get(currentChat.id);
-                    if (cached) {
-                        messagesCacheRef.current.set(currentChat.id, {
-                            ...cached,
-                            messages: updatedMessages,
-                            timestamp: Date.now()
-                        });
+                    // Check if this is replacing an optimistic message (by checking content and user, or temp ID)
+                    const optimisticIndex = prev.findIndex(m =>
+                        m.isOptimistic &&
+                        m.content === msg.content &&
+                        (m.userId === msg.userId || m.user === msg.user)
+                    );
+
+                    if (optimisticIndex !== -1) {
+                        // Replace the optimistic message with the real one
+                        const updated = [...prev];
+                        updated[optimisticIndex] = msg;
+                        return updated;
                     }
 
-                    return updatedMessages;
+                    // Check if message already exists by ID
+                    const exists = prev.some((m) => m.id === msg.id);
+                    if (!exists) {
+                        return [...prev, msg];
+                    }
+                    return prev;
                 });
 
-                // Smooth scroll for incoming messages from others with proper delay
-                setTimeout(() => scrollToBottom(true), 100);
+                // Smooth scroll to bottom for incoming messages if user is near bottom
+                setTimeout(() => scrollToBottom());
 
-                // Mark the message as read since user is viewing this chat
-                markLastMessageAsRead(currentChat.id, msg.id);
-            }
-            // Handle messages for OTHER chats (not currently selected) - update their cache
-            else if (msg.chatId && msg.chatId !== currentChat?.id) {
-                // Show notification for other chats if it's not from current user
+                // Mark incoming message as read if window is focused
+                if (document.hasFocus() && user && msg.userId !== user.id) {
+                    markLastMessageAsRead(msg.chatId!, msg.id);
+                }
+            } else if (msg.chatId && (!currentChat || msg.chatId !== currentChat.id)) {
+                // Show browser notification if message is from another chat or window is hidden
                 if (user && msg.userId !== user.id) {
                     showMessageNotification(msg);
                 }
@@ -318,7 +329,7 @@ export function useChatLogic() {
         });
 
         // Listen for real-time reaction updates
-        realtimeClient.onReactionUpdate((data: {
+        const unsubReaction = realtimeClient.onReactionUpdate((data: {
             messageId: string;
             emoji: string;
             action: 'added' | 'removed';
@@ -372,7 +383,7 @@ export function useChatLogic() {
         });
 
         // Listen for typing events
-        realtimeClient.onTyping((data: TypingEvent) => {
+        const unsubTyping = realtimeClient.onTyping((data: TypingEvent) => {
             const currentChat = selectedChatRef.current;
             if (currentChat && data.chatId === currentChat.id && user && data.userId !== user.id) {
                 setTypingUsers(prev => {
@@ -409,7 +420,9 @@ export function useChatLogic() {
         });
 
         return () => {
-            realtimeClient.cleanup();
+            unsubMessage?.();
+            unsubReaction?.();
+            unsubTyping?.();
         };
     }, [realtimeClient, user, showMessageNotification]); // Removed selectedChat dependency
 
@@ -540,15 +553,11 @@ export function useChatLogic() {
         joinAllChats();
     }, [realtimeClient, user]);
 
-    // Manage chat room joining/leaving
+    // Manage chat room joining
     useEffect(() => {
         if (!realtimeClient || !selectedChat) return;
 
         realtimeClient.joinChat(selectedChat.id);
-
-        return () => {
-            realtimeClient.leaveChat(selectedChat.id);
-        };
     }, [realtimeClient, selectedChat]);
 
     const sendMessage = async () => {
@@ -1269,7 +1278,14 @@ export function useChatLogic() {
     // Function to send typing status
     const handleTyping = (isTyping: boolean) => {
         if (selectedChat && user && realtimeClient) {
-            realtimeClient.sendTyping(selectedChat.id, user.id, isTyping);
+            const displayName =
+                user.firstName ||
+                user.fullName?.split(' ')[0] ||
+                user.username ||
+                user.primaryEmailAddress?.emailAddress?.split('@')[0] ||
+                user.emailAddresses?.[0]?.emailAddress?.split('@')[0] ||
+                'User';
+            realtimeClient.sendTyping(selectedChat.id, user.id, isTyping, displayName);
         }
     };
 
