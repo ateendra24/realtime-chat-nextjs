@@ -136,6 +136,7 @@ export interface TypingEvent {
   chatId: string;
   userId: string;
   isTyping: boolean;
+  userName?: string;
 }
 
 /**
@@ -191,16 +192,16 @@ export interface RealtimeClient {
   disconnect: () => void;
   joinChat: (chatId: string) => void;
   leaveChat: (chatId: string) => void;
-  onMessage: (callback: (data: Message) => void) => void;
-  onReactionUpdate: (callback: (data: ReactionUpdateData) => void) => void;
-  onChatListUpdate: (callback: (data: ChatListUpdateData) => void) => void;
-  onGlobalChatListUpdate: (callback: (data: GlobalChatListUpdateData) => void) => void;
+  onMessage: (callback: (data: Message) => void) => (() => void) | void;
+  onReactionUpdate: (callback: (data: ReactionUpdateData) => void) => (() => void) | void;
+  onChatListUpdate: (callback: (data: ChatListUpdateData) => void) => (() => void) | void;
+  onGlobalChatListUpdate: (callback: (data: GlobalChatListUpdateData) => void) => (() => void) | void;
   onUserOnline: (callback: (data: UserPresenceData) => void) => void;
   onUserOffline: (callback: (data: UserPresenceData) => void) => void;
-  onUserBlocked: (callback: (data: BlockEvent) => void) => void;
-  onUserUnblocked: (callback: (data: BlockEvent) => void) => void;
-  onTyping: (callback: (data: TypingEvent) => void) => void;
-  sendTyping: (chatId: string, userId: string, isTyping: boolean) => void;
+  onUserBlocked: (callback: (data: BlockEvent) => void) => (() => void) | void;
+  onUserUnblocked: (callback: (data: BlockEvent) => void) => (() => void) | void;
+  onTyping: (callback: (data: TypingEvent) => void) => (() => void) | void;
+  sendTyping: (chatId: string, userId: string, isTyping: boolean, userName?: string) => void;
   emitChatListUpdate: (data: ChatListUpdateData) => void;
   emitGlobalChatListUpdate: (data: GlobalChatListUpdateData) => void;
   joinPresence: (userId: string) => void;

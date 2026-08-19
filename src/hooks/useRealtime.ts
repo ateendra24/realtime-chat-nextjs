@@ -18,12 +18,16 @@ class AblyRealtimeClient implements RealtimeClient {
   private channels: Map<string, Ably.RealtimeChannel> = new Map();
   public isConnected: boolean = false;
   private currentChatId: string | null = null;
-  private messageCallback: ((data: Message) => void) | null = null;
-  private reactionCallback: ((data: ReactionUpdateData) => void) | null = null;
-  private typingCallback: ((data: TypingEvent) => void) | null = null;
-  private chatListUpdateCallback: ((data: ChatListUpdateData) => void) | null = null;
-  private userBlockedCallback: ((data: BlockEvent) => void) | null = null;
-  private userUnblockedCallback: ((data: BlockEvent) => void) | null = null;
+  private messageCallbacks: Set<(data: Message) => void> = new Set();
+  private reactionCallbacks: Set<(data: ReactionUpdateData) => void> = new Set();
+  private typingCallbacks: Set<(data: TypingEvent) => void> = new Set();
+  private chatListUpdateCallbacks: Set<(data: ChatListUpdateData) => void> = new Set();
+  private globalChatListUpdateCallbacks: Set<(data: GlobalChatListUpdateData) => void> = new Set();
+  private userOnlineCallbacks: Set<(data: UserPresenceData) => void> = new Set();
+  private userOfflineCallbacks: Set<(data: UserPresenceData) => void> = new Set();
+  private userBlockedCallbacks: Set<(data: BlockEvent) => void> = new Set();
+  private userUnblockedCallbacks: Set<(data: BlockEvent) => void> = new Set();
+  private joinedChatIds: Set<string> = new Set();
   private isDisconnecting: boolean = false;
 
   async connect() {
@@ -59,10 +63,10 @@ class AblyRealtimeClient implements RealtimeClient {
         this.isConnected = true;
         console.log('✅ Ably connected');
 
-        // Rejoin current chat if we were in one (handles reconnections)
-        if (this.currentChatId) {
-          this.joinChat(this.currentChatId);
-        }
+        // Rejoin all chats that were requested
+        this.joinedChatIds.forEach(chatId => {
+          this.subscribeToChatChannel(chatId);
+        });
       });
 
       this.ably.connection.on('disconnected', () => {
@@ -98,85 +102,75 @@ class AblyRealtimeClient implements RealtimeClient {
       this.channels.forEach((channel) => {
         try {
           channel.unsubscribe();
-        } catch {
-          // Ignore unsubscribe errors during cleanup
+        } catch (error) {
+          // Ignore errors during disconnect
+          console.debug('Error unsubscribing channel during disconnect:', error);
         }
       });
+
+      // Clear the channels map
       this.channels.clear();
 
-      // Don't explicitly close Ably connection - let it clean up naturally
-      // Calling close() can throw "Connection closed" errors during React cleanup
-    } catch {
-      // Silently ignore all disconnect errors
-    } finally {
-      this.ably = null;
+      // Close the Ably connection
+      this.ably.close();
       this.isConnected = false;
+      this.ably = null;
+      console.log('🔌 Ably disconnected cleanly');
+    } catch (error) {
+      console.debug('Error during disconnect:', error);
+    } finally {
       this.isDisconnecting = false;
     }
   }
 
+  private subscribeToChatChannel(chatId: string) {
+    if (!this.ably || this.channels.has(`chat-${chatId}`)) {
+      return;
+    }
+
+    const channel = this.ably.channels.get(`chat-${chatId}`, {
+      params: { rewind: '1' }, // Get last message on join
+    });
+
+    channel.subscribe('message', (message) => {
+      this.messageCallbacks.forEach(cb => cb(message.data as Message));
+    });
+
+    channel.subscribe('reaction-update', (message) => {
+      this.reactionCallbacks.forEach(cb => cb(message.data as ReactionUpdateData));
+    });
+
+    channel.subscribe('typing', (message) => {
+      this.typingCallbacks.forEach(cb => cb(message.data as TypingEvent));
+    });
+
+    channel.subscribe('chat-list-update', (message) => {
+      this.chatListUpdateCallbacks.forEach(cb => cb(message.data as ChatListUpdateData));
+    });
+
+    channel.attach().then(() => {
+      console.debug(`✅ Attached to channel: chat-${chatId}`);
+    }).catch((err) => {
+      console.error(`Failed to attach to channel: chat-${chatId}`, err);
+    });
+
+    this.channels.set(`chat-${chatId}`, channel);
+  }
+
   joinChat(chatId: string) {
-    if (this.ably) {
-      // Leave previous chat channel gracefully
-      if (this.currentChatId && this.channels.has(`chat-${this.currentChatId}`)) {
-        const oldChannel = this.channels.get(`chat-${this.currentChatId}`);
-        try {
-          oldChannel?.unsubscribe();
-          // Ably handles detach automatically when unsubscribing
-        } catch (error) {
-          console.debug('Error unsubscribing from old channel:', error);
-        }
-        this.channels.delete(`chat-${this.currentChatId}`);
-      }
-
-      // Join new chat channel with message history
-      const channel = this.ably.channels.get(`chat-${chatId}`, {
-        params: { rewind: '1' }, // Get last message on join
-      });
-
-      // Set up listeners for this channel
-      if (this.messageCallback) {
-        channel.subscribe('message', (message) => {
-          this.messageCallback!(message.data as Message);
-        });
-      }
-
-      if (this.reactionCallback) {
-        channel.subscribe('reaction-update', (message) => {
-          this.reactionCallback!(message.data as ReactionUpdateData);
-        });
-      }
-
-      if (this.typingCallback) {
-        channel.subscribe('typing', (message) => {
-          this.typingCallback!(message.data as TypingEvent);
-        });
-      }
-
-      if (this.chatListUpdateCallback) {
-        channel.subscribe('chat-list-update', (message) => {
-          this.chatListUpdateCallback!(message.data as ChatListUpdateData);
-        });
-      }
-
-      // Attach to channel and handle errors
-      channel.attach().then(() => {
-        console.debug(`✅ Attached to channel: chat-${chatId}`);
-      }).catch((err) => {
-        console.error(`Failed to attach to channel: chat-${chatId}`, err);
-      });
-
-      this.channels.set(`chat-${chatId}`, channel);
-      this.currentChatId = chatId;
+    this.joinedChatIds.add(chatId);
+    this.currentChatId = chatId;
+    if (this.ably && this.isConnected) {
+      this.subscribeToChatChannel(chatId);
     }
   }
 
   leaveChat(chatId: string) {
+    this.joinedChatIds.delete(chatId);
     if (this.ably && this.channels.has(`chat-${chatId}`)) {
       const channel = this.channels.get(`chat-${chatId}`);
       try {
         channel?.unsubscribe();
-        // No need to explicitly detach - Ably handles this automatically
       } catch (error) {
         console.debug('Error leaving chat:', error);
       }
@@ -188,76 +182,54 @@ class AblyRealtimeClient implements RealtimeClient {
   }
 
   onMessage(callback: (data: Message) => void) {
-    this.messageCallback = callback;
-
-    // Apply to existing chat channels
-    this.channels.forEach((channel, channelName) => {
-      if (channelName.startsWith('chat-')) {
-        channel.subscribe('message', (message) => {
-          callback(message.data as Message);
-        });
-      }
-    });
+    this.messageCallbacks.add(callback);
+    return () => {
+      this.messageCallbacks.delete(callback);
+    };
   }
 
   onReactionUpdate(callback: (data: ReactionUpdateData) => void) {
-    this.reactionCallback = callback;
-
-    // Apply to existing chat channels
-    this.channels.forEach((channel, channelName) => {
-      if (channelName.startsWith('chat-')) {
-        channel.subscribe('reaction-update', (message) => {
-          callback(message.data as ReactionUpdateData);
-        });
-      }
-    });
+    this.reactionCallbacks.add(callback);
+    return () => {
+      this.reactionCallbacks.delete(callback);
+    };
   }
 
   onTyping(callback: (data: TypingEvent) => void) {
-    this.typingCallback = callback;
-
-    // Apply to existing chat channels
-    this.channels.forEach((channel, channelName) => {
-      if (channelName.startsWith('chat-')) {
-        channel.subscribe('typing', (message) => {
-          callback(message.data as TypingEvent);
-        });
-      }
-    });
+    this.typingCallbacks.add(callback);
+    return () => {
+      this.typingCallbacks.delete(callback);
+    };
   }
 
-  sendTyping(chatId: string, userId: string, isTyping: boolean) {
+  sendTyping(chatId: string, userId: string, isTyping: boolean, userName?: string) {
     if (this.ably) {
       const channel = this.ably.channels.get(`chat-${chatId}`);
-      channel.publish('typing', { chatId, userId, isTyping });
+      channel.publish('typing', { chatId, userId, isTyping, userName });
     }
   }
 
   onChatListUpdate(callback: (data: ChatListUpdateData) => void) {
-    this.chatListUpdateCallback = callback;
-
-    // Apply to existing chat channels
-    this.channels.forEach((channel, channelName) => {
-      if (channelName.startsWith('chat-')) {
-        channel.subscribe('chat-list-update', (message) => {
-          callback(message.data as ChatListUpdateData);
-        });
-      }
-    });
+    this.chatListUpdateCallbacks.add(callback);
+    return () => {
+      this.chatListUpdateCallbacks.delete(callback);
+    };
   }
 
   onGlobalChatListUpdate(callback: (data: GlobalChatListUpdateData) => void) {
+    this.globalChatListUpdateCallbacks.add(callback);
     if (!this.channels.has('global-updates')) {
       const channel = this.ably?.channels.get('global-updates');
       if (channel) {
         this.channels.set('global-updates', channel);
+        channel.subscribe('global-chat-list-update', (message) => {
+          this.globalChatListUpdateCallbacks.forEach(cb => cb(message.data as GlobalChatListUpdateData));
+        });
       }
     }
-    const channel = this.channels.get('global-updates');
-    channel?.unsubscribe('global-chat-list-update');
-    channel?.subscribe('global-chat-list-update', (message) => {
-      callback(message.data as GlobalChatListUpdateData);
-    });
+    return () => {
+      this.globalChatListUpdateCallbacks.delete(callback);
+    };
   }
 
   onUserOnline(callback: (data: UserPresenceData) => void) {
@@ -295,17 +267,13 @@ class AblyRealtimeClient implements RealtimeClient {
       const channel = this.ably.channels.get(channelName);
 
       // Listen for blocked/unblocked events on this channel
-      if (this.userBlockedCallback) {
-        channel.subscribe('user-blocked', (message) => {
-          this.userBlockedCallback!(message.data as BlockEvent);
-        });
-      }
+      channel.subscribe('user-blocked', (message) => {
+        this.userBlockedCallbacks.forEach(cb => cb(message.data as BlockEvent));
+      });
 
-      if (this.userUnblockedCallback) {
-        channel.subscribe('user-unblocked', (message) => {
-          this.userUnblockedCallback!(message.data as BlockEvent);
-        });
-      }
+      channel.subscribe('user-unblocked', (message) => {
+        this.userUnblockedCallbacks.forEach(cb => cb(message.data as BlockEvent));
+      });
 
       this.channels.set(channelName, channel);
     }
@@ -322,27 +290,17 @@ class AblyRealtimeClient implements RealtimeClient {
   }
 
   onUserBlocked(callback: (data: BlockEvent) => void) {
-    this.userBlockedCallback = callback;
-    // Re-attach if channels already exist
-    this.channels.forEach((channel, name) => {
-      if (name.startsWith('presence-')) {
-        channel.subscribe('user-blocked', (message) => {
-          callback(message.data as BlockEvent);
-        });
-      }
-    });
+    this.userBlockedCallbacks.add(callback);
+    return () => {
+      this.userBlockedCallbacks.delete(callback);
+    };
   }
 
   onUserUnblocked(callback: (data: BlockEvent) => void) {
-    this.userUnblockedCallback = callback;
-    // Re-attach if channels already exist
-    this.channels.forEach((channel, name) => {
-      if (name.startsWith('presence-')) {
-        channel.subscribe('user-unblocked', (message) => {
-          callback(message.data as BlockEvent);
-        });
-      }
-    });
+    this.userUnblockedCallbacks.add(callback);
+    return () => {
+      this.userUnblockedCallbacks.delete(callback);
+    };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -369,56 +327,48 @@ class AblyRealtimeClient implements RealtimeClient {
   }
 }
 
+let sharedRealtimeClient: AblyRealtimeClient | null = null;
+let sharedRealtimePromise: Promise<AblyRealtimeClient> | null = null;
+
 export function useRealtime() {
-  const [client, setClient] = useState<RealtimeClient | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const isInitializedRef = useRef(false);
+  const [client, setClient] = useState<RealtimeClient | null>(sharedRealtimeClient);
+  const [isConnected, setIsConnected] = useState(sharedRealtimeClient?.isConnected || false);
 
   useEffect(() => {
-    // Prevent double initialization in React strict mode
-    if (isInitializedRef.current) {
-      return;
+    let isMounted = true;
+
+    if (!sharedRealtimeClient) {
+      if (!sharedRealtimePromise) {
+        sharedRealtimePromise = (async () => {
+          const realtimeClient = new AblyRealtimeClient();
+          await realtimeClient.connect();
+          sharedRealtimeClient = realtimeClient;
+          return realtimeClient;
+        })();
+      }
+
+      sharedRealtimePromise.then((realtimeClient) => {
+        if (isMounted) {
+          setClient(realtimeClient);
+          setIsConnected(realtimeClient.isConnected);
+        }
+      });
+    } else {
+      setClient(sharedRealtimeClient);
+      setIsConnected(sharedRealtimeClient.isConnected);
     }
 
-    isInitializedRef.current = true;
-
-    const initClient = async () => {
-      // Use Ably for real-time with E2EE support
-      const realtimeClient = new AblyRealtimeClient();
-
-      await realtimeClient.connect();
-      setClient(realtimeClient);
-      setIsConnected(realtimeClient.isConnected);
-
-      // Monitor connection status
-      const checkConnection = setInterval(() => {
-        setIsConnected(realtimeClient.isConnected);
-      }, 1000);
-
-      return () => {
-        clearInterval(checkConnection);
-      };
-    };
-
-    initClient();
+    const checkConnection = setInterval(() => {
+      if (sharedRealtimeClient) {
+        setIsConnected(sharedRealtimeClient.isConnected);
+      }
+    }, 1000);
 
     return () => {
-      isInitializedRef.current = false;
+      isMounted = false;
+      clearInterval(checkConnection);
     };
   }, []);
-
-  useEffect(() => {
-    return () => {
-      if (client) {
-        try {
-          client.cleanup();
-          client.disconnect();
-        } catch (error) {
-          console.debug('Error during cleanup:', error);
-        }
-      }
-    };
-  }, [client]);
 
   return { client, isConnected };
 }
