@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import * as Ably from 'ably';
+import { db } from '@/db';
+import { chatParticipants } from '@/db/schema';
+import { eq, isNull } from 'drizzle-orm';
+import { and } from 'drizzle-orm';
 
 // Create Ably token for client-side authentication
 export async function GET() {
@@ -20,6 +24,31 @@ export async function GET() {
                 { status: 500 }
             );
         }
+
+        // Fetch all chats the user is currently an active participant of
+        const userChats = await db.query.chatParticipants.findMany({
+            where: and(
+                eq(chatParticipants.userId, userId),
+                isNull(chatParticipants.leftAt)
+            ),
+            columns: {
+                chatId: true,
+            }
+        });
+
+        type CapabilityOp = 'publish' | 'subscribe' | 'presence';
+
+        // Build capability object ensuring the principle of least privilege
+        const capability: { [key: string]: CapabilityOp[] } = {
+            'global-updates': ['subscribe'],
+            [`presence-${userId}`]: ['subscribe', 'presence'],
+            [`user-${userId}`]: ['subscribe'],
+        };
+
+        for (const chat of userChats) {
+            capability[`chat-${chat.chatId}`] = ['publish', 'subscribe', 'presence'];
+        }
+
         // Create Ably Rest client
         const ably = new Ably.Rest({
             key: apiKey,
@@ -28,9 +57,7 @@ export async function GET() {
         // Generate token with user ID as client ID for presence
         const tokenRequest = await ably.auth.createTokenRequest({
             clientId: userId,
-            capability: {
-                '*': ['publish', 'subscribe', 'presence'],
-            },
+            capability,
         });
 
         return NextResponse.json(tokenRequest);
