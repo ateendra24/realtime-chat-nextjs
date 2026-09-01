@@ -14,6 +14,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { id, username, email, fullName, avatarUrl } = body;
 
+    if (id !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Check if user already exists
     const existingUser = await db
       .select()
